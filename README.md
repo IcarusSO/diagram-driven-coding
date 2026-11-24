@@ -1,123 +1,125 @@
 # diagram-driven-coding
 
-一個畀 AI 寫 code 用嘅 skill：用每個元件 folder 內嘅 `ARCHITECTURE.md`（class／sequence diagram、職責、資料契約）先行，配合 TDD 同 interface 分層，收窄 AI 改 code 嘅爆炸半徑。
+[English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
 
-*English: a skill that keeps AI-written changes inside a component boundary. Diagram first, then tests, then code. Interface changes need human approval.*
+A skill for AI coding assistants. Each component folder carries its own `ARCHITECTURE.md` (class and sequence diagrams, responsibilities, data contracts) that is written first, combined with TDD and interface layering, so that an AI-written change stays inside a component boundary.
 
-## 解決咩問題
+> Note: `SKILL.md` and the demo documents are written in Cantonese. AI assistants read them without trouble; the READMEs are available in three languages.
 
-> 想先睇成品：[demo/ARCHITECTURE.md](demo/ARCHITECTURE.md) 係 root 元件地圖，順住連結可以睇到元件同子元件嘅文件。
+## What problem does it solve?
 
-叫 AI 改一個功能，佢順手改咗三個唔相關嘅檔案；改 A 壞 B；錯咗之後逐行 debug 慳唔到時間。
+> Want to see the result first? [demo/ARCHITECTURE.md](demo/ARCHITECTURE.md) is the root component map; follow its links to the component and sub-component documents.
 
-呢個 skill 唔係叫 AI「更加小心」，而係令佢冇得亂改：
+You ask an AI to change one feature and it also edits three unrelated files; fixing A breaks B; and after a mistake you still have to debug line by line.
 
-- **邊界清楚**：每個元件一個 folder，只經 interface 對外，private helper 外面唔准碰。
-- **先改圖、再寫 test、後實作**：圖係 AI 同人都睇得明嘅導航圖，亦係 review 嘅重點。
-- **測對外承諾，唔測內部結構**：防止 AI 用大量結構測試製造虛假嘅 coverage 安全感。
-- **改 interface 要經人批准**：AI 會先估算有冇「同當前工作無關」嘅其他使用者，再主動問你要唔要批准。
-- **錯咗可以整個 class 換走**：多個實作共用同一套行為 contract test。
+This skill does not ask the AI to "be more careful". It leaves the AI no room to wander:
 
-更多做法見最後嘅「核心原則詳解」。
+- **Clear boundaries**: one folder per component, exposed only through its interface; nobody outside touches private helpers.
+- **Diagram first, then tests, then code**: the diagram is a map that both the AI and the human can read, and it is the focus of review.
+- **Test public promises, not internal structure**: stops the AI from producing piles of structural tests that give a false sense of coverage.
+- **Interface changes need human approval**: the AI first estimates whether the interface has users unrelated to the current work, then asks you whether to approve.
+- **A broken class can be replaced wholesale**: all implementations share one set of behavioural contract tests.
 
-## 內容
+More detail is in "Principles in detail" at the end.
 
-| 路徑 | 內容 |
+## Contents
+
+| Path | Content |
 | --- | --- |
-| `SKILL.md` | skill 本體，一個檔案（核心做法、進階可選項、ARCHITECTURE.md 模板） |
-| `demo/` | 一個細小嘅 Python 示範項目（root、元件、子元件各有 `ARCHITECTURE.md`），三個情境示範 skill 點樣運作，詳見 `demo/DEMO.md`。想快啲睇成品：[demo/ARCHITECTURE.md](demo/ARCHITECTURE.md)（root 元件地圖）→ [demo/pricing/ARCHITECTURE.md](demo/pricing/ARCHITECTURE.md)（元件）→ [demo/pricing/rules/ARCHITECTURE.md](demo/pricing/rules/ARCHITECTURE.md)（子元件） |
+| `SKILL.md` | The skill itself, one file (core practice, optional advanced items, ARCHITECTURE.md template) |
+| `demo/` | A small Python demo project (root, components and a sub-component each have an `ARCHITECTURE.md`) with three scenarios showing how the skill works; see `demo/DEMO.md`. For a quick look: [demo/ARCHITECTURE.md](demo/ARCHITECTURE.md) (root component map) → [demo/pricing/ARCHITECTURE.md](demo/pricing/ARCHITECTURE.md) (component) → [demo/pricing/rules/ARCHITECTURE.md](demo/pricing/rules/ARCHITECTURE.md) (sub-component) |
 
-## 點用
+## How to use
 
-- **Claude Code**：將 `SKILL.md` 放入 `.claude/skills/diagram-driven-coding/SKILL.md`。
-- **ChatGPT／Codex**：
-  - ChatGPT：如果帳戶有 Skills 功能，喺 Plugins → Skills → Create → Upload from your computer 上載；冇嘅話，將 `SKILL.md` 貼入 Project 嘅 instructions 或作為檔案上載。
-  - Codex：放入項目嘅 `.agents/skills/diagram-driven-coding/SKILL.md`（想所有項目都用，放喺 `~/.agents/skills/`），輸入 `$diagram-driven-coding` 就可以明確呼叫。唔使另外寫 `AGENTS.md`。
-- **其他 AI 工具**：放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `.cursorrules`）。
+- **Claude Code**: put `SKILL.md` at `.claude/skills/diagram-driven-coding/SKILL.md`.
+- **ChatGPT / Codex**:
+  - ChatGPT: if your account has Skills, upload it via Plugins → Skills → Create → Upload from your computer; otherwise paste `SKILL.md` into a Project's instructions or upload it as a file.
+  - Codex: put it at `.agents/skills/diagram-driven-coding/SKILL.md` in your project (or in `~/.agents/skills/` to use it everywhere) and invoke it explicitly with `$diagram-driven-coding`. No separate `AGENTS.md` is needed.
+- **Other AI tools**: put it in the tool's skills directory, or merge its content into the project's instruction file (for example `.cursorrules`).
 
-適用於中型以上、AI 會長期參與維護嘅項目。細 script 或一次性項目唔使用。
+Suited to medium or larger projects that AI will help maintain over a long time. Not for small scripts or one-off projects.
 
-## 狀態
+## Status
 
-核心做法來自多個真實項目嘅長期使用經驗；「進階」部分（自動強制檢查、commit hash、分級批准等）仲未驗證，請當作建議。
+The core practice comes from long-term use in several real projects. The "advanced" part (automatic enforcement, commit hashes, tiered approval and so on) is not yet validated; treat it as suggestions.
 
-## 試跑 demo 嘅測試
+## Run the demo tests
 
 ```bash
 cd demo
 python3 -m unittest discover -v
 ```
 
-只需要 Python 3.9 或以上，冇外部依賴。
+Requires Python 3.9 or later and no external dependencies.
 
-## 跑型別檢查（可選）
+## Run the type checkers (optional)
 
-Interface 簽名一致性靠型別檢查器強制（見 skill 嘅「簽名一致」原則）。Demo 已附設定檔：
+Signature compatibility of interfaces is enforced by type checkers (see the "signature compatibility" principle in the skill). The demo ships the config files:
 
 ```bash
 pip install mypy pyright
 cd demo
-mypy       # 讀 mypy.ini（strict）
-pyright    # 讀 pyrightconfig.json（standard）
+mypy       # reads mypy.ini (strict)
+pyright    # reads pyrightconfig.json (standard)
 ```
 
-兩個都應該係 0 error。
+Both should report 0 errors.
 
-## 核心原則詳解
+## Principles in detail
 
-### 文件有階層
+### Layered documentation
 
-- **root `ARCHITECTURE.md`**：只畫元件地圖（邊個依賴邊個）同跨元件嘅主要流程，唔寫實作細節。
-- **元件 `ARCHITECTURE.md`**：每個元件一份，寫職責、class／sequence diagram、資料契約同「唔負責咩」。
-- **子元件**：只有符合開 interface 條件（跨 folder 使用、有多個可替換實作、接外部系統）先拆出嚟，同樣有自己嘅 `ARCHITECTURE.md`；喺父層嘅圖入面只當一個 participant。層數控制喺 2–3 層。
-- 例子：[root](demo/ARCHITECTURE.md)、[元件](demo/pricing/ARCHITECTURE.md)、[子元件](demo/pricing/rules/ARCHITECTURE.md)。
+- **Root `ARCHITECTURE.md`**: only the component map (who depends on whom) and the main cross-component flows; no implementation details.
+- **Component `ARCHITECTURE.md`**: one per component, with responsibilities, class and sequence diagrams, the data contract and what it is *not* responsible for.
+- **Sub-components**: split out only when they meet the conditions for having an interface (used across folders, several replaceable implementations, or an external system). They get their own `ARCHITECTURE.md` and appear in the parent's diagram as a single participant. Keep depth to 2–3 levels.
+- Examples: [root](demo/ARCHITECTURE.md), [component](demo/pricing/ARCHITECTURE.md), [sub-component](demo/pricing/rules/ARCHITECTURE.md).
 
-### 資料形狀要寫明
+### Spell out data shapes
 
-- 返回值如果係固定 key 嘅結構，用 `TypedDict`，放喺元件嘅 `data_types.py` 並由 `__init__.py` 匯出。唔用裸 `dict`（睇唔出入面有咩），亦唔為咗包裝而硬砌 class（多咗隱藏邏輯，用起上嚟麻煩）。
-- 值只可以係幾個固定字串，就用 `Literal`（例如 `CustomerTier`）。
-- DataFrame 嘅 column 同 dtype 都係資料契約：column 清單只定義一次，文件同驗證共用；喺元件邊界驗證輸入同輸出（可以考慮 `pandera`）。
-- 每個公開函式、class 都要有 Google style docstring（`Args:`、`Returns:`、`Raises:`、`Not responsible for:` 等）。
+- A return value with fixed keys uses a `TypedDict`, defined in the component's `data_types.py` and exported from `__init__.py`. No bare `dict` (you cannot tell what is inside), and no class wrapper just for packaging (hidden logic, awkward to use).
+- A value drawn from a fixed set of strings uses `Literal` (for example `CustomerTier`).
+- A DataFrame's columns and dtypes are a data contract: define the column list once, share it between the docs and the validation, and validate input and output at the component boundary (consider `pandera`).
+- Every public function and class has a Google-style docstring (`Args:`, `Returns:`, `Raises:`, `Not responsible for:` and so on).
 
-### 簽名相容交畀型別檢查器
+### Signature compatibility, enforced by type checkers
 
-- 原則：實作嘅簽名同 interface 相容：參數名、順序、kind 一致；型別按型別檢查器規則（參數可放寬、return 可收窄）。
-- 留意工具保證嘅係「相容」，唔係「文字上完全相同」。
-- 唔靠 AI 自覺，靠工具擋：Python 用 pyright 或 mypy，TypeScript 用 `tsc --strict`，Java／C# 由 compiler 負責。
-- Demo 附咗 `demo/mypy.ini` 同 `demo/pyrightconfig.json`，見上面「跑型別檢查」。
+- Principle: an implementation's signature must be compatible with its interface: parameter names, order and kind match; types follow the type checker's rules (parameters may be wider, the return type may be narrower).
+- Note that tools guarantee compatibility, not textual identity.
+- Do not rely on the AI's good intentions; let tools block it: pyright or mypy for Python, `tsc --strict` for TypeScript, the compiler for Java and C#.
+- The demo ships `demo/mypy.ini` and `demo/pyrightconfig.json`; see "Run the type checkers" above.
 
-### DIP 要做，但唔好令 interface 變亂（YAGNI）
+### Do DIP, but keep the interface clean (YAGNI)
 
-- 實作 class 嘅 constructor 可以收 interface 型別嘅依賴，但呢啲參數只係元件內部嘅事。
-- 組裝放喺元件 `__init__.py` 嘅工廠函式（例如 `default_pricer()`）；對外只匯出 interface、`TypedDict` 同工廠函式；實作 class 唔放入 `__all__`，約定其他 folder 只用工廠函式同 interface。Python 唔會強制，要強制就用依賴檢查。
-- 冇 interface 嘅內部細 class（驗證、小計等）由實作自己建立，唔使注入。
-- AI 如果為咗「將來可能替換」而新增公開參數或匯出實作 class，要講明係邊個具體需求；答唔到就唔加。
-- Demo 對應：`demo/pricing/__init__.py` 同 `demo/pricing/standard_pricer.py`。
+- An implementation's constructor may take dependencies typed as interfaces, but those parameters are the component's internal business.
+- Wiring lives in a factory function in the component's `__init__.py` (for example `default_pricer()`). Export only the interface, the `TypedDict`s and the factory; keep implementation classes out of `__all__` and agree that other folders use only the factory and the interface. Python does not enforce this; use a dependency checker if you need enforcement.
+- Small internal classes without an interface (validation, subtotals and so on) are created by the implementation itself and need no injection.
+- If the AI proposes new public parameters or exports an implementation class "in case we swap it later", it must name the concrete requirement; if it cannot, do not add it.
+- In the demo: `demo/pricing/__init__.py` and `demo/pricing/standard_pricer.py`.
 
-### 測試規則
+### Testing rules
 
-- 測對外承諾（行為），唔鎖死內部結構。檢查標準：呢個 test 失敗，下游會唔會真係壞？下游依賴嘅 import 路徑、關鍵字參數名都算契約，可以測。
-- 多個實作共用同一套 contract test，所以整個 class 換走時，行為保證仲喺度。
+- Test public promises (behaviour) and do not lock down internal structure. The check: if this test fails, would downstream really break? Import paths and keyword parameter names that downstream depends on count as contracts and can be tested.
+- Implementations share one set of contract tests, so when a whole class is replaced the behavioural guarantees remain.
 
-### 改 interface 要經人批准
+### Interface changes need human approval
 
-- 預設所有 interface 改動都要批准。
-- AI 會先估算有冇「同當前工作無關」嘅其他使用者（其他 folder 有冇引用），再向你講清楚影響範圍，主動問你批唔批。
+- By default, every interface change needs approval.
+- The AI first estimates whether other users unrelated to the current work exist (references from other folders), explains the impact, and asks you whether to approve.
 
-### 接手舊項目
+### Taking over an existing project
 
-- 非 OOP 項目唔好一次過重寫：先喺現有 code 加一層薄薄嘅 caller（最少改動），先寫 characterization test 鎖住現有行為。
-- 再喺新 folder 用 OOP 寫核心邏輯，同舊邏輯並行（shadow run）比對結果，滿意先切換，並保留回退。
-- 核心邏輯大嘅話，逐件搬，root 圖用 `<<legacy>>` participant 表示未搬嘅部分。
+- For a non-OOP project, do not rewrite everything at once: first add a thin caller to the existing code (minimal change) and write characterization tests to pin down current behaviour.
+- Then write the core logic with OOP in a new folder, run it alongside the old logic (shadow run) to compare results, switch over when satisfied, and keep a way back.
+- When the core logic is large, move it piece by piece, and show the parts not yet moved as a `<<legacy>>` participant in the root diagram.
 
-### 誠實匯報
+### Honest reporting
 
-- AI 匯報時要分清楚：`PASSED`、`FAILED`、`NOT RUN`、`BLOCKED`，唔可以將冇跑過嘅 test 講成通過。
+- The AI must distinguish `PASSED`, `FAILED`, `NOT RUN` and `BLOCKED`, and must not present tests that were never run as passing.
 
-### 進階（可選，未驗證）
+### Advanced (optional, not yet validated)
 
-自動強制檢查、commit hash、test plan／notebook、分級批准，詳見 `SKILL.md` 嘅「進階」部分。
+Automatic enforcement, commit hashes, test plans and notebooks, tiered approval; see the "advanced" part of `SKILL.md`.
 
 ## Licence
 
-MIT，見 [LICENSE](LICENSE)。
+MIT, see [LICENSE](LICENSE).
