@@ -11,6 +11,10 @@ class TestDiscountPolicy(unittest.TestCase):
             ("standard", 10_000, 1_000),
             ("vip", 5_000, 250),
             ("vip", 10_000, 1_500),
+            # New rule: orders of GBP 200 or more get a 15% base discount instead of 10%
+            ("standard", 19_999, 2_000),
+            ("standard", 20_000, 3_000),
+            ("vip", 20_000, 4_000),
         ]
         for tier, subtotal, expected in cases:
             with self.subTest(tier=tier, subtotal=subtotal):
