@@ -24,15 +24,14 @@
 
 | 路徑 | 內容 |
 | --- | --- |
-| `SKILL.md` | skill 本體（觸發條件、核心步驟、完成標準） |
-| `references/` | 按需要先讀嘅細節：docstring 同 DataFrame 規範、舊項目遷移、進階機制、ARCHITECTURE.md 模板 |
+| `SKILL.md` | skill 本體，一個檔案（核心做法、進階可選項、ARCHITECTURE.md 模板） |
 | `demo/` | 一個細小嘅 Python 示範項目（root、元件、子元件各有 `ARCHITECTURE.md`），三個情境示範 skill 點樣運作，詳見 `demo/DEMO.md`。想快啲睇成品：[demo/ARCHITECTURE.md](demo/ARCHITECTURE.md)（root 元件地圖）→ [demo/pricing/ARCHITECTURE.md](demo/pricing/ARCHITECTURE.md)（元件）→ [demo/pricing/rules/ARCHITECTURE.md](demo/pricing/rules/ARCHITECTURE.md)（子元件） |
 
 ## 點用
 
-- **Claude Code**：將 `SKILL.md` 同 `references/` 一齊放入 `.claude/skills/diagram-driven-coding/`。
-- **ChatGPT**：將 `SKILL.md` 貼入 Project 或自訂 GPT 嘅 instructions，`references/` 入面嘅檔案作為知識檔案上載；如果用 Codex，就併入項目嘅 `AGENTS.md`。
-- **其他 AI 工具**：將 `SKILL.md` 同 `references/` 放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `CLAUDE.md`、`.cursorrules`）。
+- **Claude Code**：將 `SKILL.md` 放入 `.claude/skills/diagram-driven-coding/SKILL.md`。
+- **ChatGPT**：將 `SKILL.md` 嘅內容貼入 Project 或自訂 GPT 嘅 instructions，或者作為檔案上載；如果用 Codex，就併入項目嘅 `AGENTS.md`。
+- **其他 AI 工具**：放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `CLAUDE.md`、`.cursorrules`）。
 
 適用於中型以上、AI 會長期參與維護嘅項目。細 script 或一次性項目唔使用。
 
