@@ -1,6 +1,6 @@
 # 示範項目嘅 AI 指引
 
-請跟 `../SKILL.md`（diagram-driven-coding）工作，包括第 4 點：dict 形狀用 `TypedDict` 命名，public 項目要有 Google 風格 docstring。
+請跟 `../SKILL.md`（diagram-driven-coding，細節見 `../references/`）工作，包括第 4 點：dict 形狀用 `TypedDict` 命名，public 項目要有 Google 風格 docstring。
 
 ## 改動前先讀文件
 

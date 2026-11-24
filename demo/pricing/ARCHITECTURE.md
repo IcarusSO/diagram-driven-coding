@@ -9,7 +9,7 @@
 - 輸出：`PriceBreakdown`（TypedDict），全部金額係整數便士。
 - 錯誤：訂單無效（冇商品、數量細過 1、未知 `customer_tier` 等）時 raise `ValueError`。
 - 唔會改動傳入嘅 `order`。
-- 組裝：`__init__.py` 嘅 `default_pricer()` 將 `StandardPricer` 同 `rules` 接埋一齊。對外只匯出 `Pricer`、型別同 `default_pricer()`；`StandardPricer` 唔匯出，所以 constructor 參數唔屬於對外 interface。
+- 組裝：`__init__.py` 嘅 `default_pricer()` 將 `StandardPricer` 同 `rules` 接埋一齊。對外只匯出 `Pricer`、型別同 `default_pricer()`；`StandardPricer` 唔放入 `__all__`（約定其他 folder 唔直接用），所以 constructor 參數唔屬於對外 interface。
 - 型別定義喺 `data_types.py`（`Order`、`OrderItem`、`PriceBreakdown`、`CustomerTier`），下表同佢們一一對應，改一邊要同步改另一邊。
 
 | 欄位 | `order`（輸入） | 輸出 | 定義 |

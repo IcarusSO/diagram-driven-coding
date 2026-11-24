@@ -22,14 +22,15 @@
 
 | 路徑 | 內容 |
 | --- | --- |
-| `SKILL.md` | skill 本體（核心做法、進階可選項、ARCHITECTURE.md 模板） |
+| `SKILL.md` | skill 本體（觸發條件、核心步驟、完成標準） |
+| `references/` | 按需要先讀嘅細節：docstring 同 DataFrame 規範、舊項目遷移、進階機制、ARCHITECTURE.md 模板 |
 | `demo/` | 一個細小嘅 Python 示範項目（root、元件、子元件各有 `ARCHITECTURE.md`），三個情境示範 skill 點樣運作，詳見 `demo/DEMO.md` |
 
 ## 點用
 
-- **Claude Code**：將 `SKILL.md` 放入 `.claude/skills/diagram-driven-coding/SKILL.md`。
-- **ChatGPT**：將 `SKILL.md` 嘅內容貼入 Project 或自訂 GPT 嘅 instructions，或者作為檔案上載；如果用 Codex，就併入項目嘅 `AGENTS.md`。
-- **其他 AI 工具**：放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `CLAUDE.md`、`.cursorrules`）。
+- **Claude Code**：將 `SKILL.md` 同 `references/` 一齊放入 `.claude/skills/diagram-driven-coding/`。
+- **ChatGPT**：將 `SKILL.md` 貼入 Project 或自訂 GPT 嘅 instructions，`references/` 入面嘅檔案作為知識檔案上載；如果用 Codex，就併入項目嘅 `AGENTS.md`。
+- **其他 AI 工具**：將 `SKILL.md` 同 `references/` 放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `CLAUDE.md`、`.cursorrules`）。
 
 適用於中型以上、AI 會長期參與維護嘅項目。細 script 或一次性項目唔使用。
 
@@ -75,23 +76,24 @@ pyright    # 讀 pyrightconfig.json（standard）
 - DataFrame 嘅 column 同 dtype 都係資料契約：column 清單只定義一次，文件同驗證共用；喺元件邊界驗證輸入同輸出（可以考慮 `pandera`）。
 - 每個公開函式、class 都要有 Google style docstring（`Args:`、`Returns:`、`Raises:`、`Not responsible for:` 等）。
 
-### 簽名一致交畀型別檢查器
+### 簽名相容交畀型別檢查器
 
-- 原則：實作嘅簽名（參數名、順序、kind、型別、return）要同 interface 完全一致。
+- 原則：實作嘅簽名同 interface 相容：參數名、順序、kind 一致；型別按型別檢查器規則（參數可放寬、return 可收窄）。
+- 留意工具保證嘅係「相容」，唔係「文字上完全相同」。
 - 唔靠 AI 自覺，靠工具擋：Python 用 pyright 或 mypy，TypeScript 用 `tsc --strict`，Java／C# 由 compiler 負責。
 - Demo 附咗 `demo/mypy.ini` 同 `demo/pyrightconfig.json`，見上面「跑型別檢查」。
 
 ### DIP 要做，但唔好令 interface 變亂（YAGNI）
 
 - 實作 class 嘅 constructor 可以收 interface 型別嘅依賴，但呢啲參數只係元件內部嘅事。
-- 組裝放喺元件 `__init__.py` 嘅工廠函式（例如 `default_pricer()`）；對外只匯出 interface、`TypedDict` 同工廠函式，實作 class 唔匯出。
+- 組裝放喺元件 `__init__.py` 嘅工廠函式（例如 `default_pricer()`）；對外只匯出 interface、`TypedDict` 同工廠函式；實作 class 唔放入 `__all__`，約定其他 folder 只用工廠函式同 interface。Python 唔會強制，要強制就用依賴檢查。
 - 冇 interface 嘅內部細 class（驗證、小計等）由實作自己建立，唔使注入。
 - AI 如果為咗「將來可能替換」而新增公開參數或匯出實作 class，要講明係邊個具體需求；答唔到就唔加。
 - Demo 對應：`demo/pricing/__init__.py` 同 `demo/pricing/standard_pricer.py`。
 
 ### 測試規則
 
-- 測對外承諾（行為），唔測內部結構。檢查標準：呢個 test 失敗，下游會唔會真係壞？
+- 測對外承諾（行為），唔鎖死內部結構。檢查標準：呢個 test 失敗，下游會唔會真係壞？下游依賴嘅 import 路徑、關鍵字參數名都算契約，可以測。
 - 多個實作共用同一套 contract test，所以整個 class 換走時，行為保證仲喺度。
 
 ### 改 interface 要經人批准
