@@ -36,11 +36,13 @@ description: 用每個元件 folder 內嘅 ARCHITECTURE.md（class／sequence di
 
 多個實作共用同一個 interface 時，保持 interface 細而專注。方法愈加愈多通常代表職責太雜，應該拆 folder，而唔係撐大 interface。
 
-**唔為假想中嘅替換加公開參數（YAGNI）**
-- DIP 要求依賴抽象，唔等於每個依賴都要變成公開 constructor 參數。內部協作者由 class 喺 `__init__` 入面自己建立，用 private 屬性持有，型別寫成 interface，咁已經符合 DIP，亦唔會污染對外簽名。
-- 例外：依賴外部系統（資料庫、API、LLM、時鐘），或者跨 folder 而且確實有多個實作並存，先開一個窄嘅注入點；唔好每個內部 class 都開。
-- 為咗測試而想注入時，先問：呢個測試係咪測緊對外行為？可以用真實內部協作者跑得過，就唔使注入。
-- AI 提議新增 constructor 參數時，要講明係邊個具體需求；答唔到就唔加。將來真係要替換，嗰陣先加，因為 class 細，改動成本低。
+**DIP 要做，但唔好令 interface 變亂（YAGNI）**
+- 實作 class 嘅 constructor 可以接收 interface 型別嘅依賴（DIP），但呢啲參數只係元件內部嘅事，唔係對外 interface 嘅一部分。
+- **組裝放喺元件嘅 `__init__.py`**：用一個工廠函式（例如 `default_pricer()`）將實作同佢嘅依賴接埋一齊。對外只匯出 interface、`TypedDict` 同工廠函式；實作 class 唔匯出，咁其他 folder 見唔到 constructor，亦唔會自己組裝。
+- Interface 同其他 folder 睇到嘅函式簽名，唔好因為 DIP 而多出一堆參數。
+- 冇 interface 嘅內部細 class（驗證、小計等）由實作自己建立，唔使注入。
+- 測試喺元件內部，可以直接用 constructor 注入 fake；但先問：呢個測試係咪測緊對外行為？可以用真實協作者跑得過，就唔使 fake。
+- AI 提議為咗「將來可能替換」而新增公開參數或匯出實作 class 時，要講明係邊個具體需求；答唔到就唔加。
 
 ### 3. ARCHITECTURE.md 內容
 建議章節：用途（做咩／唔做咩）、職責同資料契約、class diagram、class 職責表、sequence diagram、計劃中／未接好嘅部分。
