@@ -2,24 +2,37 @@
 
 [English](README.md) | [繁體中文](README.zh-TW.md) | [简体中文](README.zh-CN.md)
 
-A skill for AI coding assistants. Each component folder carries its own `ARCHITECTURE.md` (class and sequence diagrams, responsibilities, data contracts) that is written first, combined with TDD and interface layering, so that an AI-written change stays inside a component boundary.
+A skill for people who can program and let AI write code. Each component folder carries its own `ARCHITECTURE.md` (class and sequence diagrams, responsibilities, data contracts) that is written first, so AI-written code stops being a black box: you read it top-down, layer by layer, and any AI change stays inside a component boundary.
 
 > Note: `SKILL.md` and the demo documents are written in English. The READMEs are available in three languages.
 >
 > Language: the examples and tools are Python. The principles are language-independent; for TypeScript, Java or C# use the equivalent mechanisms (for example `interface`, string unions or `enum`, and `tsc --strict`). `SKILL.md` Part 4 has a mapping table.
 
-## What problem does it solve?
+## Two main benefits
 
 > Want to see the result first? [demo/ARCHITECTURE.md](demo/ARCHITECTURE.md) is the root component map; follow its links to the component and sub-component documents.
 
-You ask an AI to change one feature and it also edits three unrelated files; fixing A breaks B; and after a mistake you still have to debug line by line.
+### 1. You can read it: AI code is no longer a black box
 
-This skill does not ask the AI to "be more careful". It leaves the AI no room to wander:
+Reviewing a pile of AI-written code line by line is exhausting, and you cannot tell whether it makes sense. With this skill you read it in layers:
+
+- **Root map** → which components exist and how they depend on each other.
+- **Component diagram** → its responsibilities, classes and main flows.
+- **Sub-component** → the details, only where you need them.
+- **Code** → last, and only the part you chose to check.
+
+Each layer shows only its own level, so a review goes from the overall design down to the code instead of searching blindly. The diagram is written before the code, so if the AI's design already looks wrong, you find out before it writes anything.
+
+This only works while diagrams and code agree. A stale diagram is worse than none, so the skill makes the AI treat the code as the truth, fix the diagram first, and check diagram against code after every change.
+
+### 2. Changes stay contained: a small blast radius
+
+Without boundaries, you ask an AI to change one feature and it also edits three unrelated files; fixing A breaks B. The skill leaves the AI no room to wander:
 
 - **Clear boundaries**: one folder per component, exposed only through its interface; nobody outside touches private helpers.
-- **Diagram first, then tests, then code**: the diagram is a map that both the AI and the human can read, and it is the focus of review.
+- **Diagram first, then tests, then code.**
 - **Test public promises, not internal structure**: stops the AI from producing piles of structural tests that give a false sense of coverage.
-- **Interface changes need human approval**: the AI first estimates whether the interface has users unrelated to the current work, then asks you whether to approve.
+- **Interface changes need human approval**: the AI first estimates whether the interface has users unrelated to the current work, then asks you.
 - **A broken class can be replaced wholesale**: all implementations share one set of behavioural contract tests.
 
 More detail is in "Principles in detail" at the end.

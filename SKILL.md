@@ -1,11 +1,11 @@
 ---
 name: diagram-driven-coding
-description: Design-first workflow for AI-assisted changes in long-lived codebases. Each component folder keeps an ARCHITECTURE.md (class and sequence diagrams, responsibilities, data contract) that is updated before the code, combined with interfaces only at boundaries, TypedDict data shapes, behaviour-only tests and human approval for interface changes. Use when adding or changing a component, a public interface, a data contract or a main flow in a long-lived repo that already works this way (it has ARCHITECTURE.md files) or that the user wants to move to this approach, or when moving legacy code into components. Examples are in Python; the principles carry to other languages. Not for small scripts, one-off code or throwaway prototypes.
+description: Design-first workflow that makes AI-written code readable through layered diagrams and keeps AI changes contained, for long-lived codebases. Each component folder keeps an ARCHITECTURE.md (class and sequence diagrams, responsibilities, data contract) that is updated before the code, combined with interfaces only at boundaries, TypedDict data shapes, behaviour-only tests and human approval for interface changes. Use when adding or changing a component, a public interface, a data contract or a main flow in a long-lived repo that already works this way (it has ARCHITECTURE.md files) or that the user wants to move to this approach, or when moving legacy code into components. Examples are in Python; the principles carry to other languages. Not for small scripts, one-off code or throwaway prototypes.
 ---
 
 # Diagram-driven coding
 
-Goal: when an AI changes code, it touches only the target component; a human can read and maintain the result; and a class that turns out wrong can be replaced as a whole.
+Goal, in two parts. **Readable**: AI-written code is not a black box; a human reads it top-down through layered diagrams (root map, then component, then sub-component, then code) and can check whether the design makes sense. **Contained**: when an AI changes code it touches only the target component, and a class that turns out wrong can be replaced as a whole. The first only holds while diagrams match the code, so keep them in sync.
 
 Use it for medium or larger projects that an AI will help maintain over time. Skip it for small scripts and one-off work.
 
