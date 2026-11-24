@@ -21,9 +21,14 @@ class DiscountPolicy(DiscountRule):
             Discount in pence, never more than the subtotal.
 
         Note:
-            Base rate is 10% when the subtotal is GBP 100 or more, otherwise 0%.
+            Base rate is 15% from GBP 200, 10% from GBP 100, otherwise 0%.
         """
-        rate_bps = 1_000 if subtotal_pence >= 10_000 else 0
+        if subtotal_pence >= 20_000:
+            rate_bps = 1_500
+        elif subtotal_pence >= 10_000:
+            rate_bps = 1_000
+        else:
+            rate_bps = 0
         if customer_tier == "vip":
             rate_bps += 500
         return min(apply_basis_points(subtotal_pence, rate_bps), subtotal_pence)
