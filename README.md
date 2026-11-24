@@ -6,6 +6,8 @@
 
 ## 解決咩問題
 
+> 想先睇成品：[demo/ARCHITECTURE.md](demo/ARCHITECTURE.md) 係 root 元件地圖，順住連結可以睇到元件同子元件嘅文件。
+
 叫 AI 改一個功能，佢順手改咗三個唔相關嘅檔案；改 A 壞 B；錯咗之後逐行 debug 慳唔到時間。
 
 呢個 skill 唔係叫 AI「更加小心」，而係令佢冇得亂改：
@@ -24,7 +26,7 @@
 | --- | --- |
 | `SKILL.md` | skill 本體（觸發條件、核心步驟、完成標準） |
 | `references/` | 按需要先讀嘅細節：docstring 同 DataFrame 規範、舊項目遷移、進階機制、ARCHITECTURE.md 模板 |
-| `demo/` | 一個細小嘅 Python 示範項目（root、元件、子元件各有 `ARCHITECTURE.md`），三個情境示範 skill 點樣運作，詳見 `demo/DEMO.md` |
+| `demo/` | 一個細小嘅 Python 示範項目（root、元件、子元件各有 `ARCHITECTURE.md`），三個情境示範 skill 點樣運作，詳見 `demo/DEMO.md`。想快啲睇成品：[demo/ARCHITECTURE.md](demo/ARCHITECTURE.md)（root 元件地圖）→ [demo/pricing/ARCHITECTURE.md](demo/pricing/ARCHITECTURE.md)（元件）→ [demo/pricing/rules/ARCHITECTURE.md](demo/pricing/rules/ARCHITECTURE.md)（子元件） |
 
 ## 點用
 
@@ -67,7 +69,7 @@ pyright    # 讀 pyrightconfig.json（standard）
 - **root `ARCHITECTURE.md`**：只畫元件地圖（邊個依賴邊個）同跨元件嘅主要流程，唔寫實作細節。
 - **元件 `ARCHITECTURE.md`**：每個元件一份，寫職責、class／sequence diagram、資料契約同「唔負責咩」。
 - **子元件**：只有符合開 interface 條件（跨 folder 使用、有多個可替換實作、接外部系統）先拆出嚟，同樣有自己嘅 `ARCHITECTURE.md`；喺父層嘅圖入面只當一個 participant。層數控制喺 2–3 層。
-- 例子見 `demo/ARCHITECTURE.md`、`demo/pricing/ARCHITECTURE.md`、`demo/pricing/rules/ARCHITECTURE.md`。
+- 例子：[root](demo/ARCHITECTURE.md)、[元件](demo/pricing/ARCHITECTURE.md)、[子元件](demo/pricing/rules/ARCHITECTURE.md)。
 
 ### 資料形狀要寫明
 
