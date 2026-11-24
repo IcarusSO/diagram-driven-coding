@@ -11,11 +11,16 @@
 呢個 skill 唔係叫 AI「更加小心」，而係令佢冇得亂改：
 
 - **邊界清楚**：每個元件一個 folder，只經 interface 對外，private helper 外面唔准碰。
-- **文件有階層**：root 一份元件地圖，每個元件（包括子元件）各自一份 `ARCHITECTURE.md`，每層只寫自己嗰層。
 - **先改圖、再寫 test、後實作**：圖係 AI 同人都睇得明嘅導航圖，亦係 review 嘅重點。
 - **測對外承諾，唔測內部結構**：防止 AI 用大量結構測試製造虛假嘅 coverage 安全感。
 - **改 interface 要經人批准**：AI 會先估算有冇「同當前工作無關」嘅其他使用者，再主動問你要唔要批准。
 - **錯咗可以整個 class 換走**：多個實作共用同一套行為 contract test。
+
+更多做法見下面「做法細節」。
+
+## 做法細節
+
+- **文件有階層**：root 一份元件地圖，每個元件（包括子元件）各自一份 `ARCHITECTURE.md`，每層只寫自己嗰層；子元件喺父層圖中只當一個 participant。
 - **資料形狀要寫明**：返回值用 `TypedDict`（唔用裸 `dict`，亦唔為咗包裝而硬砌 class），固定選項用 `Literal`；DataFrame 就喺邊界驗證必要嘅 column。
 - **簽名一致交畀型別檢查器**：實作嘅參數名、順序、型別、return 要同 interface 完全一致，Python 用 pyright／mypy 擋住，唔靠 AI 自覺。
 - **DIP 要做，但唔好令 interface 變亂**：實作 constructor 可以收 interface 型別嘅依賴，但組裝放喺元件 `__init__.py` 嘅工廠函式，唔對外匯出實作 class，咁其他 folder 見唔到多出嚟嘅參數。
