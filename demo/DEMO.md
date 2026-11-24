@@ -98,5 +98,6 @@ AI 應該：
 ## 狀態
 
 - 情境一、二：真實執行嘅 git 歷史，1a 同 2a 刻意係 RED，其餘每一步都跑過測試。
-- 型別檢查（mypy／pyright）暫時冇跑過，因為示範環境未安裝。
+- 型別檢查已跑：`cd demo && mypy`（`mypy.ini`，strict）同 `pyright`（`pyrightconfig.json`，standard）對 source 同 tests 都係 0 error；三個 tag 同 HEAD 嘅 14 個 test 都通過。
+- 如果改用 pyright strict，`pricing/order_validator.py` 會有 3 個 `reportUnnecessaryIsInstance`：嗰度刻意用 `isinstance` 驗證唔受信任嘅輸入，所以示範用 standard。
 - 情境三：預期行為對照清單，**未有喺真實 AI 工具跑過嘅結果記錄**。跑完之後請按實際情況修改呢個檔案。

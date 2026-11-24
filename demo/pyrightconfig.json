@@ -1,0 +1,4 @@
+{
+  "include": ["checkout", "pricing", "reports"],
+  "typeCheckingMode": "standard"
+}
