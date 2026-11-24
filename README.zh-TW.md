@@ -5,6 +5,8 @@
 一個給 AI 寫程式用的 skill：每個元件資料夾內都有自己的 `ARCHITECTURE.md`（class／sequence diagram、職責、資料契約）先行，配合 TDD 與 interface 分層，把 AI 改程式的影響範圍收窄。
 
 > 注意：`SKILL.md` 與 demo 文件以英文撰寫；README 提供三種語言。
+>
+> 語言：範例與工具以 Python 為主。原則與語言無關；使用 TypeScript、Java 或 C# 時，改用對應機制（例如 `interface`、字串聯合型別或 `enum`，以及 `tsc --strict`）。`SKILL.md` 第 4 部分附有對照表。
 
 ## 解決什麼問題
 

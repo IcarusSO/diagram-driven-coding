@@ -5,6 +5,8 @@
 A skill for AI coding assistants. Each component folder carries its own `ARCHITECTURE.md` (class and sequence diagrams, responsibilities, data contracts) that is written first, combined with TDD and interface layering, so that an AI-written change stays inside a component boundary.
 
 > Note: `SKILL.md` and the demo documents are written in English. The READMEs are available in three languages.
+>
+> Language: the examples and tools are Python. The principles are language-independent; for TypeScript, Java or C# use the equivalent mechanisms (for example `interface`, string unions or `enum`, and `tsc --strict`). `SKILL.md` Part 4 has a mapping table.
 
 ## What problem does it solve?
 
