@@ -74,6 +74,7 @@ description: 用每個元件 folder 內嘅 ARCHITECTURE.md（class／sequence di
 - TypedDict 放喺元件自己嘅 `data_types.py`；其他 folder 要用嘅，由元件嘅 `__init__.py` 匯出。
 - 唔為咗型別另外包 dataclass 或 class，純資料就係 TypedDict。
 - 變數同欄位名帶單位（`amount_pence`、`revenue_gbp`）。
+- **DataFrame**：欄位同 dtype 型別表達唔到，所以係資料契約，要寫入契約表（欄位、dtype、單位、可否有 null、多出嘅欄位係咪容許）。欄位清單只定義一次（例如 `data_types.py` 嘅常數），文件表同驗證共用，唔好兩邊各抄一份。跨 folder 嘅函式喺邊界驗證輸入同輸出，內部 private helper 唔使重複驗證。
 
 **Docstring（Google 風格，必須）**
 - 範圍：所有 public module、class、method、function、TypedDict 必須有完整 docstring。private helper 至少一行摘要。測試靠描述性嘅名，docstring 可選。
@@ -181,6 +182,7 @@ class DiscountPolicy:
 - Pre-commit 或 CI：改咗 interface 檔案但冇改 `ARCHITECTURE.md` 就失敗。
 - 改 interface 檔案時要求批准標記。
 - 型別同 docstring 檢查：型別用 mypy 或 pyright，docstring 用 ruff 嘅 `D` 規則（Google convention）。
+- DataFrame 欄位驗證：邊界函式至少檢查必需欄位存在；建議用 `pandera`（或自己寫 decorator）連 dtype、null、數值範圍一齊檢查。留意每次呼叫都驗證有成本，只放喺 interface 邊界，必要時可喺 production 關閉。
 - 實作簽名一致：實作簽名（參數名、順序、kind、型別、return）要同 interface 完全一致，用型別檢查器強制。Python 用 pyright（`reportIncompatibleMethodOverride`）或 mypy，TypeScript 用 `tsc --strict`，Java／C# 編譯器本身會擋。唔好為咗呢點自己寫 runtime 檢查放入 skill。
 
 ### B. Commit hash 對應
