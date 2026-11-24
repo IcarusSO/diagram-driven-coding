@@ -1,18 +1,18 @@
-# 示範項目嘅 AI 指引（Codex 等讀 AGENTS.md 嘅工具用；內容同 CLAUDE.md 一致）
+# AI instructions for the demo project (for Codex and other tools that read AGENTS.md; same content as CLAUDE.md)
 
-請跟 `../SKILL.md`（diagram-driven-coding）工作，包括第 4 點：dict 形狀用 `TypedDict` 命名，public 項目要有 Google 風格 docstring。
+Work according to `../SKILL.md` (diagram-driven-coding), including section 4: name dict shapes with `TypedDict`, and give public items Google-style docstrings.
 
-## 改動前先讀文件
+## Read the documents before changing anything
 
-先讀 `ARCHITECTURE.md`（元件地圖），再讀目標元件自己嘅 `ARCHITECTURE.md`；子元件（例如 `pricing/rules`）有自己嘅文件。只讀需要嘅部分，唔好掃描整個項目。
+Read `ARCHITECTURE.md` (the component map) first, then the target component's own `ARCHITECTURE.md`. Sub-components (for example `pricing/rules`) have their own document. Read only what you need; do not scan the whole project.
 
-## 本項目嘅批准設定
+## Approval settings for this project
 
-以下 interface 改動一律事先批准：改簽名、回傳、資料結構、單位、語義、class 職責、跨 folder 依賴，以及改或刪 contract test。
+These interface changes always need approval in advance: changes to a signature, a return value, a data structure, a unit, a meaning, a class responsibility or a cross-folder dependency, and changing or deleting a contract test.
 
-改 interface 之前，先搜尋並列出「同當前工作無關」嘅其他使用者，連同前後契約對比向我報告，等我批准先繼續。
+Before changing an interface, search for and list the other users that are unrelated to the current work, report them to me together with the contract before and after, and wait for my approval before continuing.
 
-## 運行測試
+## Running the tests
 
 ```bash
 cd demo

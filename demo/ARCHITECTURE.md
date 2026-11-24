@@ -1,49 +1,49 @@
-# 示範項目：訂單定價（Root 總覽）
+# Demo project: order pricing (root overview)
 
-> 呢份係元件地圖：邊個元件做咩、對外 interface 喺邊、誰依賴誰。
-> 唔畫任何 class 內部，要睇內部請去各元件自己嘅 `ARCHITECTURE.md`。
+> This is the component map: what each component does, where its public interface is, and who depends on whom.
+> It shows no class internals. For those, read each component's own `ARCHITECTURE.md`.
 
-## 元件
-| 元件 | 做咩 | 對外 interface | 文件 |
+## Components
+| Component | What it does | Public interface | Document |
 | --- | --- | --- | --- |
-| `pricing` | 將訂單計成價格明細（小計、折扣、稅、總額） | `Pricer`、`Order`、`PriceBreakdown`、`default_pricer()`（見 `pricing/__init__.py`） | [pricing/ARCHITECTURE.md](pricing/ARCHITECTURE.md) |
-| `checkout` | 將訂單印成文字收據 | `render_receipt()` | [checkout/ARCHITECTURE.md](checkout/ARCHITECTURE.md) |
-| `reports` | 計算每日銷售總額 | `render_daily_sales()` | [reports/ARCHITECTURE.md](reports/ARCHITECTURE.md) |
+| `pricing` | Prices an order into a breakdown (subtotal, discount, tax, total) | `Pricer`, `Order`, `PriceBreakdown`, `default_pricer()` (see `pricing/__init__.py`) | [pricing/ARCHITECTURE.md](pricing/ARCHITECTURE.md) |
+| `checkout` | Renders an order as a text receipt | `render_receipt()` | [checkout/ARCHITECTURE.md](checkout/ARCHITECTURE.md) |
+| `reports` | Calculates the daily sales total | `render_daily_sales()` | [reports/ARCHITECTURE.md](reports/ARCHITECTURE.md) |
 
-`pricing` 入面仲有子元件 `pricing/rules`（折扣同稅），由 `pricing` 自己管理，root 唔需要知道。
+`pricing` also contains the sub-component `pricing/rules` (discount and tax). `pricing` manages it; the root does not need to know about it.
 
-## 依賴方向
+## Dependency direction
 ```mermaid
 flowchart LR
     checkout --> pricing
     reports --> pricing
 ```
 
-規則：
-- 其他元件只可以用 `pricing/__init__.py` 匯出嘅嘢，唔可以 import `pricing.rules` 或任何內部模組。
-- `checkout` 同 `reports` 之間冇依賴。
+Rules:
+- Other components may use only what `pricing/__init__.py` exports. They may not import `pricing.rules` or any internal module.
+- `checkout` and `reports` do not depend on each other.
 
-## 跨元件流程
+## Cross-component flow
 ```mermaid
 sequenceDiagram
-    participant Shop as 呼叫方
+    participant Shop as Caller
     participant checkout
     participant reports
     participant pricing
     Shop->>checkout: render_receipt(order)
     checkout->>pricing: Pricer.price(order)
-    alt 訂單無效
+    alt invalid order
         pricing-->>checkout: ValueError
         checkout-->>Shop: ValueError
-    else 成功
+    else success
         pricing-->>checkout: PriceBreakdown
-        checkout-->>Shop: 收據文字
+        checkout-->>Shop: receipt text
     end
     Shop->>reports: render_daily_sales(orders)
-    reports->>pricing: Pricer.price(order)（每張訂單）
+    reports->>pricing: Pricer.price(order) (for each order)
     pricing-->>reports: PriceBreakdown
-    reports-->>Shop: 報表文字
+    reports-->>Shop: report text
 ```
 
-## 未接好／計劃中
-- 暫時冇。
+## Planned / not wired yet
+- Nothing at the moment.

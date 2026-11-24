@@ -1,103 +1,149 @@
 ---
 name: diagram-driven-coding
-description: 用每個元件 folder 內嘅 ARCHITECTURE.md（class／sequence diagram、職責、資料契約）先行，配合 TDD 同 interface 分層，收窄 AI 改 code 嘅爆炸半徑。適用於長期維護嘅 repo 內新增或修改元件、公共介面、資料契約或主要流程。
+description: Design-first workflow for AI-assisted changes in long-lived codebases. Each component folder keeps an ARCHITECTURE.md (class and sequence diagrams, responsibilities, data contract) that is updated before the code, combined with interfaces only at boundaries, TypedDict data shapes, behaviour-only tests and human approval for interface changes. Use when adding or changing a component, a public interface, a data contract or a main flow in a long-lived repo that already works this way (it has ARCHITECTURE.md files) or that the user wants to move to this approach, or when moving legacy code into components. Examples are in Python; the principles carry to other languages. Not for small scripts, one-off code or throwaway prototypes.
 ---
 
-# Diagram 驅動寫 code
+# Diagram-driven coding
 
-目標：令 AI 改 code 時只郁到目標元件，人睇得明、維護得到，而且錯咗可以整個 class 換走。
+Goal: when an AI changes code, it touches only the target component; a human can read and maintain the result; and a class that turns out wrong can be replaced as a whole.
 
-適用：中型以上、AI 會長期參與維護嘅項目。細 script 或一次性項目唔使用。
+Use it for medium or larger projects that an AI will help maintain over time. Skip it for small scripts and one-off work.
 
-## 一、核心做法
+Examples are in Python. The principles apply to any language; see "Other languages" at the end for the mapping.
 
-### 1. Folder 結構
-- 按「元件」分 folder，唔係一個 helper 一個 folder，亦唔開投機性嘅 folder。
-- 每個元件 folder 放：對外 interface、實作 class、private helper（`_helpers/` 或 folder 內私有函式）、一份 `ARCHITECTURE.md`。
-- 其他 folder 只可以使用呢個元件嘅 interface，唔可以 import 佢嘅 private helper。
-- **ARCHITECTURE.md 階層**：
-  - **Root**：元件地圖。列出每個元件做咩、對外 interface 喺邊、依賴方向，加跨元件嘅 sequence diagram。唔畫任何 class 內部。
-  - **元件 folder**：各自一份，畫自己嘅 class diagram、職責表、sequence diagram。
-  - **子元件（sub-folder）**：符合下面「幾時先開 interface」條件先獨立成元件，自己一份文件。喺父元件嘅圖入面只係一個參與者，並連去子元件自己嘅文件，唔好展開，亦唔好重複。
-  - 每一層只寫自己嗰層，改動範圍細，被改嘅文件就少。深度建議最多兩至三層，再深通常代表職責切得太碎。
-- 檔名 `ARCHITECTURE.md` 可以按項目習慣改名。
-- 做改動前，先讀目標元件嘅 `ARCHITECTURE.md` 同 interface，再按需要讀相關實作、測試同 caller，唔好掃描整個 codebase。舊 repo 冇圖時，用呢個範圍建立第一份圖。
+## Quick checklist (every change)
 
-### 2. 幾時先開 interface
-符合以下其一先開：
-1. 被其他 folder 使用（跨邊界）。
-2. 預期有多個實作，或者之後可能要換。
-3. 依賴外部系統（資料庫、第三方 API、LLM）。
+1. **Read narrowly.** Read the target component's `ARCHITECTURE.md` and interface, then only the implementation, tests and callers you need. Do not scan the whole codebase. If the diagram and the code disagree, the code is right: correct the diagram before relying on it, and say that you did.
+2. **Interface change?** Find who else uses it and get approval first (section 7). This is the one step where a repo-wide search for callers is expected.
+3. **Diagram first.** If the change touches an interface, a data contract, a cross-component dependency, a main flow or a class responsibility, update `ARCHITECTURE.md` before the code.
+4. **TDD.** Write a failing behaviour test, implement, refactor (section 6).
+5. **Verify.** Run the tests, read the diff, check the diagram against the code, check docstrings and data types (section 5).
+6. **Report honestly** with `NOT RUN`, `BLOCKED`, `FAILED` or `PASSED` (section 9).
 
-唔使開：
-- Folder 內部嘅 class 同 private helper，由 folder 嘅 interface 統一對外，內部可以隨便改。
-- 只有一個實作、冇跨邊界、冇外部依賴嘅 class。
-- 純資料唔另包 class，但 dict 嘅形狀要用 `TypedDict` 命名（見第 4 點），唔好用匿名 dict。Class 一定要有具體嘅行為職責。
+The numbered sections below explain each step. Part 2 is optional.
 
-多個實作共用同一個 interface 時，保持 interface 細而專注。方法愈加愈多通常代表職責太雜，應該拆 folder，而唔係撐大 interface。
+## Part 1. Core practice
 
-**DIP 要做，但唔好令 interface 變亂（YAGNI）**
-- 實作 class 嘅 constructor 可以接收 interface 型別嘅依賴（DIP），但呢啲參數只係元件內部嘅事，唔係對外 interface 嘅一部分。
-- **組裝放喺元件嘅 `__init__.py`**：用一個工廠函式（例如 `default_pricer()`）將實作同佢嘅依賴接埋一齊。對外只匯出 interface、`TypedDict` 同工廠函式；實作 class 唔放入 `__all__`，約定其他 folder 只用工廠函式同 interface，唔自己組裝。注意 Python 嘅 `__all__` 唔會阻止直接 import 實作檔；要強制就用依賴檢查（見進階 A），或者將實作檔命名成 `_standard_pricer.py` 呢類私有名。
-- Interface 同其他 folder 睇到嘅函式簽名，唔好因為 DIP 而多出一堆參數。
-- 冇 interface 嘅內部細 class（驗證、小計等）由實作自己建立，唔使注入。
-- 測試喺元件內部，可以直接用 constructor 注入 fake；但先問：呢個測試係咪測緊對外行為？可以用真實協作者跑得過，就唔使 fake。
-- AI 提議為咗「將來可能替換」而新增公開參數或匯出實作 class 時，要講明係邊個具體需求；答唔到就唔加。
+### 1. Folder structure
 
-### 3. ARCHITECTURE.md 內容
-建議章節：用途（做咩／唔做咩）、職責同資料契約、class diagram、class 職責表、sequence diagram、計劃中／未接好嘅部分。
+- One folder per component. Not one folder per helper, and no speculative folders.
+- A component folder holds its public interface, its implementation classes, its private helpers (`_helpers/` or private functions) and one `ARCHITECTURE.md`.
+- Other folders use only what the component exports. They never import its private helpers or implementation modules.
 
-**Class diagram 規則（要簡化）**
-- 只畫 public method 同 attribute。
-- 唔畫 constructor、private 成員、重複繼承嘅方法、note box。
-- 實線（association）只用喺真正儲存咗 reference 嘅地方；虛線表示依賴；實心菱形表示擁有。
-- 只畫該元件相關嘅 class／interface。外部 collaborator 當一個命名參與者，唔展開佢內部。
+```
+payment/
+  ARCHITECTURE.md
+  __init__.py             # the export surface: interface, data types, factory
+  interface.py            # PaymentGateway
+  data_types.py           # ChargeRequest, ChargeResult
+  stripe_gateway.py       # implementation
+  paypal_gateway.py       # implementation (planned)
+  _helpers/               # private; nothing outside imports this
+  tests/
+    test_gateway_contract.py   # behaviour contract tests, run against every implementation
+```
 
-**Sequence diagram 規則**
-- 畫該 folder 內 class 之間嘅協作細節，以易讀為先；外部 collaborator 只當一個參與者。
-- 涵蓋主要流程，加上關鍵嘅錯誤路徑同空值路徑。
-- 未接好嘅邊界要誠實畫出，唔好畫成已經行得通嘅流程。
+**Layers of `ARCHITECTURE.md`**
 
-**計劃同已實作要分開標示**
-- 計劃中嘅 class／流程用 `<<planned>>` 或獨立章節標明。
-- 規劃圖唔可以畫到好似已經能跑。
+- **Root**: the component map. For each component: what it does, where its public interface is, and which way dependencies point, plus sequence diagrams for flows that cross components. No class internals.
+- **Component folder**: one file each, with its own class diagram, responsibility table and sequence diagrams.
+- **Sub-component (sub-folder)**: becomes its own component, with its own file, only when it meets the conditions in section 2. In the parent's diagrams it is a single participant that links to the sub-component's file. Do not expand it and do not repeat it.
+- Each layer describes only itself, so a change touches few documents. Keep depth to two or three layers; deeper usually means responsibilities are cut too finely.
+- The file name `ARCHITECTURE.md` may follow the project's own convention.
+- In an old repo with no diagrams, use the narrow reading scope from the checklist to write the first one.
 
-**資料契約表（涉及欄位／參數時）**
-- 只有一張表，每行一個真實欄位，唔好將多個欄位寫喺同一格。
-- 表頭用函式真正嘅參數名。
-- 「存在」欄只填 `Yes` 或 `—`；定義、單位、粒度寫喺 definition 欄。
-- 只寫 interface 層，private helper 唔使寫，避免同 code 重複。
-- 表同 code 入面嘅 `TypedDict` 一一對應：`TypedDict` 係 code 嘅定義，表係畀人睇嘅版本，改一個要喺同一個改動入面同步改另一個。
+### 2. When to add an interface
 
-**Class 職責表**
-每個 class 一行，職責逐點列出（一點一個責任），並分開列出「不負責」嘅嘢。
+Add one only when at least one of these holds:
 
-### 4. 資料型別同 docstring（必須）
+1. It is used from another folder (it crosses a boundary).
+2. Several implementations exist, or a replacement is expected.
+3. It depends on an external system (database, third-party API, LLM).
 
-**資料型別**
-- 凡係形狀穩定、會跨函式或跨 folder 傳遞嘅 dict，一律用 `TypedDict` 命名，每個欄位都有型別。簽名唔好寫 `dict`、`list[dict]` 或匿名 tuple。
-- 原因：匿名 dict 睇簽名唔知有咩 key，要追入實作先知；回傳 class 要 new、要 import，仲可能藏有 hidden logic，對純資料係 over-architecture。`TypedDict` 純資料、冇行為，簽名即文件，runtime 仍然係普通 dict。
-- 字串如果係固定選項，一定用 `Literal`，唔好寫成普通 `str`（例如 `Literal["standard", "vip"]`）。
-- Key 係動態嘅 map（例如 `dict[str, int]` 做累加）可以繼續用 `dict[K, V]`，唔使 TypedDict。
-- TypedDict 放喺元件自己嘅 `data_types.py`；其他 folder 要用嘅，由元件嘅 `__init__.py` 匯出。
-- 唔為咗型別另外包 dataclass 或 class，純資料就係 TypedDict。
-- 變數同欄位名帶單位（`amount_pence`、`revenue_gbp`）。
-- **DataFrame**：欄位同 dtype 型別表達唔到，所以係資料契約，要寫入契約表（欄位、dtype、單位、可否有 null、多出嘅欄位係咪容許）。欄位清單只定義一次（例如 `data_types.py` 嘅常數），文件表同驗證共用，唔好兩邊各抄一份。跨 folder 嘅函式喺邊界驗證輸入同輸出，內部 private helper 唔使重複驗證。
+Do not add one for:
 
-**Docstring（Google 風格，必須）**
-- 範圍：所有 public module、class、method、function、TypedDict 必須有完整 docstring。private helper 至少一行摘要。測試靠描述性嘅名，docstring 可選。
-- 語言隨項目，但章節標題固定用英文 `Args:`、`Returns:`、`Raises:`、`Attributes:`，工具同 AI 都認得。
-- 第一行：一句祈使句摘要（`Return ...`、`Calculate ...`），一行寫完。
-- `Args:` 每個參數一行：`名稱: 意思，單位，範圍`。
-- `Returns:` 講返回咩、單位、保證（例如排序、唔超過某值）。返回 TypedDict 時，欄位意思寫喺 TypedDict 嘅 `Attributes:`，唔好喺度重複。
-- `Raises:` 每種例外同觸發條件；冇就唔寫呢節。
-- 有副作用或不變量先加 `Note:`（例如「唔會改動傳入嘅 order」）。
-- Class docstring：一句職責，加 `Not responsible for:`，要同 `ARCHITECTURE.md` 嘅職責表一致。
-- TypedDict docstring：一句說明，加 `Attributes:` 逐欄位寫意思、單位、範圍。
+- Classes and private helpers inside a folder. The folder's interface is the single public face; the inside may change freely.
+- A class with one implementation, no boundary crossing and no external dependency.
+- Pure data. Data does not get a class; name its shape with a `TypedDict` (section 4). A class must have a behavioural responsibility.
 
-標準範本：
+When several implementations share an interface, keep it small and focused. A growing method list usually means mixed responsibilities: split the folder rather than widen the interface.
+
+**Dependency inversion without clutter (YAGNI)**
+
+- An implementation's constructor may take dependencies typed by interface. Those parameters are internal to the component, not part of its public interface.
+- **Wire inside the component's `__init__.py`**: a factory function (for example `default_pricer()`) connects the implementation to its dependencies. Export only the interface, the data types and the factory. Leave implementation classes out of `__all__`; other folders use the factory and the interface and do not assemble anything themselves. Python's `__all__` does not stop a direct import of the implementation module. To enforce it, use a dependency check (Advanced A) or give the module a private name such as `_standard_pricer.py`.
+- **Wiring across components**: a factory may wire its own sub-components. To use a different component, the simple default is to call that component's exported factory; the dependency must appear in the root map. Move the wiring up to the application entry point, and take the other component's interface as a parameter, when any of these holds: the dependency reaches an external system, tests need to swap it, or two components must share one instance.
+- Public signatures must not grow extra parameters because of dependency inversion.
+- Small internal classes with no interface (validation, subtotals) are created by the implementation itself. Do not inject them.
+- Tests live inside the component and may inject fakes through the constructor. Ask first whether the test is about public behaviour; if it passes with the real collaborators, do not use a fake.
+- When you want to add a public parameter or export an implementation class "in case it needs replacing later", name the concrete need. If you cannot, do not add it.
+
+### 3. What goes in ARCHITECTURE.md
+
+Sections: purpose (does and does not do), responsibilities and data contract, class diagram, class responsibility table, sequence diagram, planned or not-yet-wired parts. The template is in Part 3.
+
+**Class diagram (keep it simple)**
+
+- Public methods and attributes only.
+- No constructors, private members, repeated inherited methods or note boxes.
+- A solid line (association) only where a reference is actually stored; a dashed line for a dependency; a filled diamond for ownership.
+- Only the classes and interfaces of this component. An external collaborator is one named participant; do not expand its internals.
+
+**Sequence diagram**
+
+- Show how the classes inside this folder work together, in whatever form reads most easily. External collaborators are single participants.
+- Cover the main flow plus the key error paths and empty-value paths.
+- Draw a boundary that is not wired yet as not wired. Do not draw a flow that does not run as if it does.
+
+**Planned versus implemented**
+
+- Mark planned classes and flows with `<<planned>>` or put them in their own section.
+- A planning diagram must never look like working code.
+
+**Data contract table (when fields or parameters are involved)**
+
+- One table. One row per real field. Never several fields in one cell.
+- Columns: `Field`, then one column per real parameter that carries data, headed with the parameter's actual name, then `Output`, then `Definition`.
+- The parameter and `Output` cells contain only `Yes` or `—`, saying whether the field is present there. Meaning, unit and granularity go in `Definition`.
+- Interface level only. Do not document private helpers; that repeats the code.
+- **Source of truth**: the `TypedDict` and its docstring define the contract. The table is the reader's summary of it. Change both in the same change; if they ever disagree, the code is right and the table is the bug.
+
+**Class responsibility table**
+
+One row per class. List responsibilities one per bullet, and list what the class is not responsible for in a separate column.
+
+### 4. Data types and docstrings (required)
+
+**Data types**
+
+- Any dict with a stable shape that passes between functions or folders is a named `TypedDict` with a type on every field. Signatures do not say `dict`, `list[dict]` or an anonymous tuple.
+- Why: an anonymous dict hides its keys until you read the implementation. A returned class has to be constructed and imported and can hide logic, which is over-architecture for pure data. A `TypedDict` is pure data with no behaviour, the signature documents itself, and at runtime it is still a plain dict.
+- A string with a fixed set of values is a `Literal`, never a plain `str` (for example `Literal["standard", "vip"]`).
+- A map with dynamic keys (for example `dict[str, int]` used as a counter) stays `dict[K, V]`.
+- `TypedDict`s live in the component's own `data_types.py`. Those that other folders need are exported from `__init__.py`.
+- Do not wrap data in a dataclass or class just to get a type. A value that must enforce a rule of its own (for example money that refuses to mix currencies) has behaviour, so it is a class, not pure data.
+- Put the unit in variable and field names (`amount_pence`, `revenue_gbp`).
+- **Untrusted input**: a `TypedDict` is checked statically, not at runtime. Data that arrives from outside the program (an HTTP body, a file, an LLM response) is validated once at the boundary where it enters, and passed on as a `TypedDict` only after that. Inner code does not validate it again.
+- **DataFrames**: types cannot express columns and dtypes, so they are a data contract and go in the contract table (column, dtype, unit, nullable, whether extra columns are allowed). Define the column list once (for example a constant in `data_types.py`) and let both the document and the validation use it. Functions that cross folders validate their input and output at the boundary; private helpers do not repeat it.
+
+**Docstrings (Google style)**
+
+- Every public module, class, method, function and `TypedDict` has a full docstring. A private helper has at least a one-line summary. Tests rely on descriptive names; docstrings are optional there.
+- Write in the project's language, but keep the section headings in English (`Args:`, `Returns:`, `Raises:`, `Attributes:`) so tools and AIs recognise them.
+- First line: one imperative sentence (`Return ...`, `Calculate ...`) on one line.
+- `Args:` one line per parameter: `name: meaning, unit, range`.
+- `Returns:` what comes back, its unit and its guarantees (for example sorted, never above some value). When the return type is a `TypedDict`, the field meanings live in its `Attributes:`; do not repeat them.
+- `Raises:` each exception and what triggers it. Omit the section when there are none.
+- `Note:` only for side effects or invariants (for example "does not modify `order`").
+- Class docstring: one sentence of responsibility plus `Not responsible for:`, matching the responsibility table in `ARCHITECTURE.md`.
+- `TypedDict` docstring: one sentence plus `Attributes:` with meaning, unit and range per field.
+
+Reference example:
 
 ```python
+CustomerTier = Literal["standard", "vip"]
+
+
 class OrderItem(TypedDict):
     """One line of an order.
 
@@ -130,178 +176,207 @@ class DiscountPolicy:
         """
 ```
 
-### 5. 改動流程（每個小改動）
-1. **快速確認**：需求清楚、冇牽涉受保護契約，就直接做。只有阻擋性問題未回答、輸入輸出意思未對齊、或者範圍未獲授權時，先停低問。涉及業務語義嘅改動，先同用戶對齊驗收例子。未確認前，可以先做文件同唯讀分析。
-2. **先改 diagram**：改動涉及 interface、資料契約、跨元件依賴、主要流程或 class 職責時，先更新 `ARCHITECTURE.md`。
-3. **講最小設計**，然後 TDD：寫一個會失敗嘅 test → 實作 → refactor。
-4. 跑針對性 test 同合適嘅回歸 test；檢查 diff；檢查 Mermaid 可以解析；檢查 diagram 同 code 一致；檢查新增或修改嘅 public 項目都有齊 docstring，dict 形狀都用 TypedDict。
-5. **誠實匯報**（見第 9 點）。
-6. 達到驗收條件先標 DONE。有個 stub 唔等於整個功能完成。
+### 5. Change workflow (every small change)
 
-唔影響 interface、資料契約、職責或 class 協作嘅改動（typo、private helper 內部重構、log 文字）可以唔改 diagram，但 test 仍然要過。
+1. **Confirm quickly.** If the request is clear and no protected contract is involved, start. Stop and ask only when a blocking question is unanswered, the meaning of an input or output is not agreed, or the scope is not authorised. For a change in business meaning, agree acceptance examples with the user first. Documentation and read-only analysis may go ahead before confirmation.
+2. **Diagram first.** If the change touches an interface, a data contract, a cross-component dependency, a main flow or a class responsibility, update `ARCHITECTURE.md` first.
+3. **State the smallest design**, then TDD: failing test, implementation, refactor.
+4. **Verify**, and say which checks actually ran:
+   - Targeted tests and the relevant regression tests.
+   - The diff contains only what the change needs.
+   - Diagram against code, in both directions: every class and public method in the diagram exists in the code under the same name, and every public class and method in the component's code is in the diagram. List any mismatch.
+   - Mermaid blocks parse. Use a renderer if one is available (for example `mmdc`, or the project's documentation build). If none is, re-read the block for syntax and report the parse check as `NOT RUN`.
+   - Every new or changed public item has its docstring, and every dict shape is a `TypedDict`.
+5. **Report honestly** (section 9).
+6. Mark DONE only when the acceptance conditions are met. A stub is not a finished feature.
 
-### 6. 測試規則：測對外承諾，唔測內部結構
-- 測對外可觀察嘅承諾：業務同數值行為、安全同完整性、計數語義、冇重複、輸入唔被改動、真實失敗情況，以及下游真正依賴嘅資料格式同語義（例如輸出一定有某欄位、金額單位係英鎊）。
-- **判斷標準**：呢個斷言失敗時，下游會唔會壞？會，就係行為，要測。只有重構先會令佢失敗，就係結構，禁止。
-- **禁止鎖死內部結構嘅測試**：內部欄位排列、private 成員、type identity、宣告形狀，以及純粹為咗 coverage 而寫嘅 test。結構上嘅保護靠 diagram、批准流程同依賴檢查，唔靠 test。
-- **公開相容性可以驗證**：下游真正依賴嘅 import 路徑、關鍵字參數名、回傳格式本身係契約，可以測；判斷標準同上，失敗時下游會壞，就係行為。
-- 被要求刪走嘅結構測試，唔可以換個名搬去其他 PR。
-- **Contract test** 只接受行為層面：同一套行為場景套用喺同一 interface 嘅所有實作，咁錯咗先可以整個 class 換走而唔使改 test。
-- 純可讀性／型別 refactor：先記錄一個通過嘅行為基線，refactor 後重跑同一批 test。唔好為咗有 RED 而捏造失敗。
+A change that does not affect an interface, a data contract, a responsibility or how classes work together (a typo, a refactor inside a private helper, a log message) does not need a diagram update. The tests must still pass.
 
-反例（點解有呢條規則）：AI 曾經寫咗 20 個 schema／signature／import 測試，coverage 數字好靚，但全部只係檢查內部結構，製造咗虛假安全感。後來全部刪除。
+### 6. Tests: test public promises, not internal structure
 
-### 7. 改 interface 要經人批准
-**受保護契約**：用戶指定要事先批准嘅 interface 改動類別。可供選擇：
-- 改 public 方法簽名（參數、回傳、型別、可否 null、錯誤行為）
-- 刪除或改名 interface 方法
-- 改 class 職責
-- 新增跨 folder 依賴
-- 改資料結構（欄位、schema、單位、語義）
-- 改或刪 contract test
+- Test promises that are observable from outside: business and numeric behaviour, safety and integrity, counting semantics, no duplicates, inputs left unmodified, real failure cases, and the data formats and meanings that downstream code actually depends on (for example an output always has a given field, or an amount is in pounds).
+- **The deciding question**: if this assertion fails, does something downstream break? If yes, it is behaviour: test it. If only a refactor could make it fail, it is structure: do not write it.
+- **No tests that pin internal structure**: internal field order, private members, type identity, the shape of declarations, or tests written only for coverage. Structure is protected by the diagram, the approval flow and dependency checks, not by tests.
+- **Public compatibility may be tested**: an import path, a keyword argument name or a return format that downstream code really depends on is itself a contract. The same question applies: if it fails, downstream breaks, so it is behaviour.
+- A structural test that was rejected must not come back under another name in another PR.
+- **Contract tests** are behavioural only: one set of behaviour scenarios runs against every implementation of an interface. That is what lets a wrong class be replaced as a whole without touching the tests.
+- For a pure readability or typing refactor, record a passing behaviour baseline first and re-run the same tests afterwards. Do not invent a failure just to have a RED step.
 
-**每次遇到 interface 改動，主動做兩件事：**
-1. **估算影響範圍**：搜尋同閱讀 code，估算呢個 interface 仲有冇被「同當前工作無關」嘅其他 code 使用（其他 folder 嘅 caller、其他元件、下游報表、外部使用者），列出你搵到嘅。
-2. **主動問用戶**：連同估算結果，問「呢類 interface 改動，下次需唔需要事先批准？」。如果有無關嘅其他使用者，**建議每次都要批准**；如果只有當前工作用到，可以建議降級，但仍然由用戶決定。將答案記入項目嘅 AI 指引檔（例如 CLAUDE.md 或同類檔案）。已記錄咗答案嘅類別，按答案行，唔使重複問。
+Why this rule exists: an AI once wrote 20 tests on schemas, signatures and imports that nothing downstream relied on. Coverage looked excellent, every test checked internal structure only, and the result was false confidence. All 20 were deleted.
 
-未有明確答案時，預設**所有 interface 改動都要批准**。
+### 7. Interface changes need human approval
 
-批准流程：
-- 改之前：用用戶睇得明嘅語言報告前後契約對比、原因、受影響嘅使用者（包括無關嘅其他使用者）、相容性、負責人，然後等批准。
-- 改完後：報告實際改咗乜同 test 證據。
-- AI 唔可以自己批准設計；內部 review 唔代替通知用戶。
+**Protected contracts** are the kinds of interface change the user wants to approve in advance. The options:
 
-### 8. 範圍同擁有權
-- 只做獲授權嘅範圍。別人負責嘅設計或實作，只可以提方案，唔可以代改。
-- 發現問題時，將問題同建議交畀負責人，唔好自行擴大範圍。
+- Changing a public method signature (parameters, return, types, nullability, error behaviour)
+- Removing or renaming an interface method
+- Changing a class's responsibility
+- Adding a cross-folder dependency
+- Changing a data structure (fields, schema, units, meaning)
+- Changing or deleting a contract test
 
-反例：AI 曾經自行加咗一個完整嘅 fallback controller class，後來確認失敗處理應該跟負責人嘅設計，整個 class 被 revert。因為 class 喺獨立 folder 內，撤走只動咗少量 commit，其他元件冇受影響。
+**For every interface change, do two things unprompted:**
 
-### 9. 誠實匯報
-- 用四個狀態詞：`NOT RUN`、`BLOCKED`、`FAILED`、`PASSED`，唔好混用。
-- 只係計劃咗嘅 RED test，唔可以講成已觀察到。
-- 舊測試總數唔可以當作新改動嘅證據。
-- 匯報要分清：真實執行、受控結果、fixture、生產環境。
+1. **Estimate the blast radius.** Search and read the code to find whether the interface is used by code unrelated to the current work: callers in other folders, other components, downstream reports, external users. List what you find.
+2. **Ask the user.** With that list, ask: "Should this kind of interface change need approval in advance next time?" If unrelated users exist, **recommend approval every time**. If only the current work uses it, you may recommend relaxing it; the user decides. Record the answer in the project's AI instruction file (for example `CLAUDE.md` or `AGENTS.md`). For a kind that already has a recorded answer, follow it and do not ask again.
 
-### 10. 接手既有非 OOP 項目：先注入，再逐步搬
-舊項目冇元件邊界、冇圖、可能冇測試時，唔好一次過重寫。用 strangler 方式逐塊搬：
+Until there is a clear answer, **every interface change needs approval**. The one exception is an interface created in the current task that no other code uses yet: it is still being designed, so shaping it is part of the task. It becomes protected once other code depends on it.
 
-1. **搵入口**：搵到核心邏輯嘅入口，向舊 code 注入一個薄 caller（改動最少）。
-2. **釘死現有行為**：舊 code 冇測試時，先寫 characterization test 記錄「而家做緊咩」，包括輸出同下游依賴嘅格式。
-3. **開新元件 folder**：interface、`TypedDict`、`ARCHITECTURE.md`，只放呢一塊核心邏輯。
-4. **新元件過同一批測試**，高風險邏輯可以新舊兩邊都跑，比較結果（shadow run）。
-5. **切換 caller**，並保留退返用舊路徑嘅方法（例如開關）。
-6. **驗證後刪舊 path**，連 adapter 一齊刪，再搬下一塊。
+The approval flow:
 
-**幾時先值得搬**：符合其中幾項先搬：核心邏輯大、經常改、AI 成日改壞、輸入輸出邊界清楚。細 script、膠水 code、純函式唔使硬轉 OOP；純函式加 `TypedDict` 已經足夠，class 一定要有行為職責。
+- Before the change: report, in terms the user can follow, the contract before and after, the reason, the affected users (including unrelated ones), compatibility and the owner. Then wait.
+- After the change: report what actually changed and the test evidence.
+- An AI cannot approve its own design. An internal review does not replace telling the user.
 
-**注入 caller 要薄**：
-- 只做兩件事：將舊資料轉成新元件嘅 `TypedDict`，然後呼叫新 interface。唔放任何業務邏輯。
-- 放喺舊 code 一側（例如 `legacy_adapter`），方便日後一齊刪走。
-- 注入 caller 等於新增跨 folder 依賴，按第 7 點預設要批准。
+### 8. Scope and ownership
 
-**文件**：新元件有自己嘅 `ARCHITECTURE.md`。舊 code 喺 root 圖同 sequence diagram 只畫成一個 `<<legacy>>` 參與者，唔展開；每次只搬一塊，唔好一次過畫晒成個舊系統。
+- Do only what is authorised. The owner of a component is the user unless the project says otherwise. For design or code that someone else owns, propose; do not change it.
+- When you find a problem outside your scope, hand the problem and a suggestion to the owner. Do not widen the scope yourself.
 
-## 二、進階（可選，未必每個項目都需要）
+Why this rule exists: an AI once added a complete fallback controller class on its own initiative. Failure handling turned out to belong to the owner's design, and the whole class was reverted. Because the class sat in its own folder, the revert touched a few commits and no other component.
 
-### A. 強制機制
-以上規則預設係 AI 要跟嘅指引。如果發現規則會被漏（文件有寫但 AI 仍然跳過），可以加自動檢查：
-- 依賴檢查：跨 folder 只准 import interface（Python：import-linter；TS：dependency-cruiser；Java：ArchUnit）。
-- Pre-commit 或 CI：改咗 interface 檔案但冇改 `ARCHITECTURE.md` 就失敗。
-- 改 interface 檔案時要求批准標記。
-- 型別同 docstring 檢查：型別用 mypy 或 pyright，docstring 用 ruff 嘅 `D` 規則（Google convention）。
-- DataFrame 欄位驗證：邊界函式至少檢查必需欄位存在；建議用 `pandera`（或自己寫 decorator）連 dtype、null、數值範圍一齊檢查。留意每次呼叫都驗證有成本，只放喺 interface 邊界，必要時可喺 production 關閉。
-- 實作簽名相容：參數名、順序、kind 要同 interface 一致；型別按型別檢查器嘅規則（參數可以放寬、return 可以收窄）。用型別檢查器強制：Python 用 pyright（`reportIncompatibleMethodOverride`）或 mypy，TypeScript 用 `tsc --strict`，Java／C# 編譯器本身會擋。留意工具保證嘅係「相容」，唔係「文字上完全相同」；要完全相同就要靠 review 或自訂檢查。唔好為咗呢點自己寫 runtime 檢查放入 skill。
+### 9. Honest reporting
 
-### B. Commit hash 對應
-喺 `ARCHITECTURE.md` 記錄 diagram 同 implementation 對應嘅 commit。注意 commit 唔可以包含自己嘅 hash，所以記錄嘅係上一個 commit。較穩陣嘅做法係用 script 偵測：比較 `git log -1 --format=%H -- <diagram>` 同 code 最後改動嘅 commit，而唔係手寫 hash。
+- Use four status words and do not blur them: `NOT RUN`, `BLOCKED`, `FAILED`, `PASSED`.
+- A RED test that was only planned was not observed. Do not report it as observed.
+- An old test total is not evidence for a new change.
+- Say which kind of evidence each result is: a real run, a controlled result, a fixture, or production.
 
-### C. Test plan 同 notebook（只限重要 class）
-- 只有重要嘅 class（核心邏輯、資料入口）先需要 test plan。
-- Test plan 由 diagram 同 interface 推導：每個方法嘅正常、邊界、錯誤情況，由人確認「測乜」，然後先寫 test。
-- Notebook 由 test plan 生成，畀人試玩同確認行為，**只係本地即棄物，唔入 git，壞咗先再生，唔維護**。
-- 試玩時發現有用嘅 case，要升級返去 test plan 同 test，唔好留喺 notebook。
-- Notebook 唔好放喺以 `.` 開頭嘅 folder（Jupyter 唔支援隱藏路徑，網址打唔開）。
-- 除非用戶要求，唔好自行執行 notebook。
+### 10. Taking over existing non-OOP code: inject first, then move piece by piece
 
-### D. 分級批准
-當用戶累積咗經驗，可以將 interface 改動分級：自動（typo、private helper、不影響 interface）、事後通知（向後兼容嘅新增，而且冇無關嘅其他使用者）、必須批准（見上面清單）。由嚴開始，睇邊類批准次次都通過，再逐步放鬆。分級由用戶決定。
+When an old project has no component boundaries, no diagrams and possibly no tests, do not rewrite it in one go. Move it piece by piece (strangler pattern):
 
-## 三、ARCHITECTURE.md 模板
+1. **Find the entry point** of the core logic and inject a thin caller into the old code, changing as little as possible.
+2. **Pin the current behaviour.** If the old code has no tests, write characterization tests that record what it does now, including outputs and the formats downstream code depends on.
+3. **Create the new component folder**: interface, `TypedDict`s and `ARCHITECTURE.md`, holding only this one piece of core logic.
+4. **Run the new component against the same tests.** For high-risk logic, run old and new side by side and compare results (shadow run).
+5. **Switch the caller**, keeping a way back to the old path (for example a flag).
+6. **After verification, delete the old path** and the adapter with it. Then move the next piece.
+
+**When a move is worth it**: when several of these hold. The core logic is large; it changes often; the AI keeps breaking it; its inputs and outputs have clear boundaries. Small scripts, glue code and pure functions do not need to become classes. A pure function with `TypedDict`s is enough.
+
+**Keep the injected caller thin**
+
+- It does two things only: convert the old data into the new component's `TypedDict`, and call the new interface. No business logic.
+- It sits on the old code's side (for example `legacy_adapter`) so it can be deleted together with the old code.
+- It is a new cross-folder dependency, so by default it needs approval (section 7).
+
+**Documents**: the new component has its own `ARCHITECTURE.md`. In the root map and the sequence diagrams the old code is a single `<<legacy>>` participant, not expanded. Move one piece at a time; do not draw the whole old system at once.
+
+## Part 2. Advanced (optional)
+
+### A. Enforcement
+
+By default the rules above are guidance the AI follows. If a rule keeps being skipped even though it is written down, add an automatic check. Diagrams going stale is the most likely failure, so the second time a diagram is found out of date, propose the pre-commit check below to the user; it is the cheapest one to add.
+
+- **Dependency check**: across folders, only the export surface may be imported (Python: import-linter; TypeScript: dependency-cruiser; Java: ArchUnit).
+- **Pre-commit or CI**: fail when an interface file changed and `ARCHITECTURE.md` did not.
+- **Approval marker** required when an interface file changes.
+- **Diagram rendering**: render every Mermaid block in CI so a broken diagram fails the build.
+- **Types and docstrings**: mypy or pyright for types; ruff's `D` rules (Google convention) for docstrings.
+- **DataFrame columns**: boundary functions check at least that required columns exist. Prefer `pandera` (or your own decorator) to check dtype, nulls and value ranges too. Validation costs time on every call, so keep it at interface boundaries and allow it to be switched off in production if needed.
+- **Signature compatibility**: an implementation's parameter names, order and kinds match the interface. Types follow the type checker's rules: parameters may widen, the return may narrow. Enforce with the type checker: pyright (`reportIncompatibleMethodOverride`) or mypy for Python, `tsc --strict` for TypeScript; the Java and C# compilers already do it. The tools guarantee compatible, not textually identical; identical needs review or a custom check. Do not write your own runtime check for this.
+
+### B. Commit hash mapping
+
+Record in `ARCHITECTURE.md` which commit the diagram and the implementation correspond to. A commit cannot contain its own hash, so the recorded hash is the previous commit. A sturdier approach is a script that compares `git log -1 --format=%H -- <diagram>` with the last commit that touched the code, rather than a hand-written hash.
+
+### C. Test plans and notebooks (important classes only)
+
+- Only important classes (core logic, data entry points) need a test plan.
+- Derive the plan from the diagram and the interface: normal, boundary and error cases for each method. A human confirms what to test, and only then are the tests written.
+- A notebook is generated from the test plan so a human can try the behaviour. **It is local and disposable: not in git, regenerated when it breaks, never maintained.**
+- A useful case found while trying things out is promoted into the test plan and the tests, not left in the notebook.
+- Do not put notebooks in a folder whose name starts with `.` (Jupyter does not serve hidden paths, so the URL will not open).
+- Do not run a notebook unless the user asks.
+
+### D. Tiered approval
+
+Once the user has some experience, interface changes can be tiered: automatic (typos, private helpers, nothing that affects an interface), notify afterwards (backward-compatible additions with no unrelated users), approval required (the list in section 7). Start strict, watch which kinds are approved every time, and relax those. The user decides the tiers.
+
+## Part 3. ARCHITECTURE.md template
 
 ````markdown
-# <元件名>
+# <component name>
 
-> 一至三行：呢個元件做咩、唔做咩。
+> One to three lines: what this component does and does not do.
 
-## 職責與資料契約
-- 輸入：…
-- 輸出：…
-- 明確唔負責：…
+## Responsibilities and data contract
+- Input: `ChargeRequest` (TypedDict).
+- Output: `ChargeResult` (TypedDict).
+- Errors: …
+- Not responsible for: …
+- Types are defined in `data_types.py`. The table below summarises them; change both together.
 
-| 欄位 | `param_name` | 輸出 | 定義 |
+| Field | `request` (input) | Output | Definition |
 | --- | --- | --- | --- |
-| `field_a` | Yes | — | 定義、單位、粒度 |
+| `order_id` | Yes | — | Order being paid for (str, non-empty) |
+| `amount_pence` | Yes | — | Amount to charge in pence (int, at least 1) |
+| `status` | — | Yes | `"ok"`, `"declined"` or `"timeout"` |
+| `charge_id` | — | Yes | Gateway charge id (str or `None`); `None` unless `status` is `"ok"` |
 
 ## Class diagram
 ```mermaid
 classDiagram
     class PaymentGateway {
         <<interface>>
-        +charge(order) Result
-        +refund(payment_id) Result
+        +charge(request) ChargeResult
     }
     class StripeGateway {
-        +charge(order) Result
-        +refund(payment_id) Result
+        +charge(request) ChargeResult
     }
     class PayPalGateway {
         <<planned>>
-        +charge(order) Result
-        +refund(payment_id) Result
+        +charge(request) ChargeResult
     }
     PaymentGateway <|.. StripeGateway
     PaymentGateway <|.. PayPalGateway
 ```
 
-## Class 職責
-| Class | 職責 | 不負責 |
+## Class responsibilities
+| Class | Responsible for | Not responsible for |
 | --- | --- | --- |
-| `StripeGateway` | <ul><li>將訂單轉成 Stripe 請求</li><li>處理 Stripe 回應同錯誤</li></ul> | 重試策略、訂單狀態 |
+| `PaymentGateway` | <ul><li>Defines the public contract for charging</li></ul> | Any implementation detail |
+| `StripeGateway` | <ul><li>Turns a `ChargeRequest` into a Stripe request</li><li>Maps Stripe responses and errors to a `ChargeResult`</li></ul> | Retry policy, order state |
 
 ## Sequence diagram
 ```mermaid
 sequenceDiagram
     participant Caller
     participant StripeGateway
-    participant StripeAPI as Stripe API（外部）
-    Caller->>StripeGateway: charge(order)
+    participant StripeAPI as Stripe API (external)
+    Caller->>StripeGateway: charge(request)
     StripeGateway->>StripeAPI: create_charge
-    alt 成功
-        StripeAPI-->>StripeGateway: charge_id
-        StripeGateway-->>Caller: Result(ok)
-    else 逾時或拒絕
-        StripeAPI-->>StripeGateway: error
-        StripeGateway-->>Caller: Result(error)
+    alt success
+        StripeAPI-->>StripeGateway: charge id
+        StripeGateway-->>Caller: ChargeResult (status "ok")
+    else declined
+        StripeAPI-->>StripeGateway: card error
+        StripeGateway-->>Caller: ChargeResult (status "declined")
+    else timeout
+        StripeAPI-->>StripeGateway: no response
+        StripeGateway-->>Caller: ChargeResult (status "timeout")
     end
 ```
 
-## 未接好／計劃中
-- [計劃] PayPalGateway 尚未實作。
+## Planned / not wired yet
+- [planned] `PayPalGateway` is not implemented.
 ````
 
-## 四、Folder 結構範例
+## Part 4. Other languages
 
-```
-payment/
-  ARCHITECTURE.md
-  payment_gateway.py      # 共用 interface
-  stripe_gateway.py       # 實作
-  paypal_gateway.py       # 實作（計劃中）
-  _helpers/               # private，外面唔准 import
-  tests/
-    test_gateway_contract.py   # 行為 contract test，套用喺所有實作
-```
+The principles are the same; only the tools differ.
 
-## 五、唔屬於呢個 skill
-角色分工、PM 流程、commit 內容限制、命名風格、環境同容器規則等，屬於個別項目或團隊嘅規範，唔放喺呢度。
+| Concept | Python | TypeScript | Java / C# |
+| --- | --- | --- | --- |
+| Interface | `ABC` or `Protocol` | `interface` | `interface` |
+| Pure data shape | `TypedDict` | `type` or `interface` with no methods | `record` with no behaviour |
+| Fixed string values | `Literal` | string literal union | `enum` |
+| Export surface | `__init__.py` and `__all__` | `index.ts` | package-private / `internal` visibility |
+| Doc comments | Google-style docstring | TSDoc | Javadoc / XML doc |
+
+"No class for pure data" means no behaviour hidden in data. Where the language's normal data shape is a record or a plain type, use it and keep it free of logic.
+
+## Part 5. Not part of this skill
+
+Role assignment, PM process, commit content rules, naming style, and environment or container rules belong to the individual project or team, not here.

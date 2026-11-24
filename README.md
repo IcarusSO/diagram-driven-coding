@@ -4,7 +4,7 @@
 
 A skill for AI coding assistants. Each component folder carries its own `ARCHITECTURE.md` (class and sequence diagrams, responsibilities, data contracts) that is written first, combined with TDD and interface layering, so that an AI-written change stays inside a component boundary.
 
-> Note: `SKILL.md` and the demo documents are written in Cantonese. AI assistants read them without trouble; the READMEs are available in three languages.
+> Note: `SKILL.md` and the demo documents are written in English. The READMEs are available in three languages.
 
 ## What problem does it solve?
 

@@ -1,20 +1,20 @@
 # pricing/rules
 
-> `pricing` 嘅子元件：決定折扣金額同計算稅額。
-> 唔負責：驗證訂單、計算小計、組合價格明細（由上層 `pricing` 做）。
-> 獨立成元件嘅原因：被上層 folder 使用，而且稅制、折扣規則將來可能要換。
+> Sub-component of `pricing`: decides the discount amount and calculates the tax.
+> Not responsible for: validating orders, calculating the subtotal, assembling the price breakdown (the parent `pricing` does those).
+> Why it is its own component: the parent folder uses it, and tax and discount rules may need replacing later.
 
-## 職責與資料契約
-- 對外只提供 `DiscountRule`、`TaxRule` 兩個 interface，同 `default_discount_rule()`、`default_tax_rule()`（見 `__init__.py`）。
-- 金額一律係整數便士，四捨五入用 half up。
-- 只依賴 `pricing.data_types` 嘅 `CustomerTier` 型別，唔依賴 `pricing` 嘅任何其他嘢。
+## Responsibilities and data contract
+- Exposes only the two interfaces `DiscountRule` and `TaxRule`, plus `default_discount_rule()` and `default_tax_rule()` (see `__init__.py`).
+- All amounts are integer pence. Rounding is half up.
+- Depends only on the `CustomerTier` type from `pricing.data_types`, and on nothing else in `pricing`.
 
-| 欄位 | `discount()` 輸入 | `tax()` 輸入 | 輸出 | 定義 |
+| Field | `discount()` input | `tax()` input | Output | Definition |
 | --- | --- | --- | --- | --- |
-| `subtotal_pence` | Yes | — | — | 訂單小計（int，不小於 0） |
-| `customer_tier` | Yes | — | — | `"standard"` 或 `"vip"` |
-| `taxable_pence` | — | Yes | — | 折後要課稅嘅金額（int，不小於 0） |
-| 回傳值 | — | — | Yes | 折扣或稅額，單位便士（int）；折扣不會超過小計 |
+| `subtotal_pence` | Yes | — | — | Order subtotal (int, at least 0) |
+| `customer_tier` | Yes | — | — | `"standard"` or `"vip"` |
+| `taxable_pence` | — | Yes | — | Amount to tax after discount (int, at least 0) |
+| return value | — | — | Yes | Discount or tax in pence (int); a discount is never more than the subtotal |
 
 ## Class diagram
 ```mermaid
@@ -37,23 +37,23 @@ classDiagram
     TaxRule <|.. TaxCalculator
 ```
 
-## Class 職責
-| Class | 職責 | 不負責 |
+## Class responsibilities
+| Class | Responsible for | Not responsible for |
 | --- | --- | --- |
-| `DiscountRule` | <ul><li>定義折扣嘅對外契約</li></ul> | 任何實作細節 |
-| `TaxRule` | <ul><li>定義稅額嘅對外契約</li></ul> | 任何實作細節 |
-| `DiscountPolicy` | <ul><li>按小計定基本折扣率（用 private helper `money` 計折扣）</li><li>vip 加成</li><li>折扣不超過小計</li></ul> | 稅、驗證 |
-| `TaxCalculator` | <ul><li>按稅率計稅（四捨五入，half up）</li></ul> | 折扣、驗證 |
+| `DiscountRule` | <ul><li>Defines the public contract for discounts</li></ul> | Any implementation detail |
+| `TaxRule` | <ul><li>Defines the public contract for tax</li></ul> | Any implementation detail |
+| `DiscountPolicy` | <ul><li>Sets the base discount rate from the subtotal (uses the private helper `money` to calculate it)</li><li>Adds the vip bonus</li><li>Keeps the discount at or below the subtotal</li></ul> | Tax, validation |
+| `TaxCalculator` | <ul><li>Calculates tax from the tax rate (rounded half up)</li></ul> | Discount, validation |
 
-兩個實作互相獨立，互相唔識，所以換其中一個唔會影響另一個。
+The two implementations are independent and do not know about each other, so replacing one does not affect the other.
 
 ## Sequence diagram
 ```mermaid
 sequenceDiagram
-    participant Caller as StandardPricer（上層）
+    participant Caller as StandardPricer (parent)
     participant DiscountPolicy
     participant TaxCalculator
-    participant money as money（private helper）
+    participant money as money (private helper)
     Caller->>DiscountPolicy: discount(subtotal_pence, customer_tier)
     DiscountPolicy->>money: apply_basis_points(subtotal_pence, rate_bps)
     money-->>DiscountPolicy: discount_pence
@@ -62,5 +62,5 @@ sequenceDiagram
     TaxCalculator-->>Caller: tax_pence
 ```
 
-## 未接好／計劃中
-- 暫時冇。
+## Planned / not wired yet
+- Nothing at the moment.

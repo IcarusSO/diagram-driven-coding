@@ -1,19 +1,19 @@
 # reports
 
-> 計算並顯示每日銷售總額。
-> 唔負責：計價（用 `pricing` 嘅 `Pricer`）、取得訂單、排版。
+> Calculates and shows the daily sales total.
+> Not responsible for: pricing (uses the `Pricer` from `pricing`), fetching orders, layout.
 
-## 職責與資料契約
-- 輸入：當日所有訂單 `list[Order]`。
-- 輸出：兩行文字：訂單數量、銷售總額（英鎊，兩位小數）。
-- 錯誤：任何一張訂單無效，`ValueError` 由 `pricing` 直接向上拋。
-- 依賴 `pricing` 輸出嘅 `total_pence`（便士）。
+## Responsibilities and data contract
+- Input: all of the day's orders, `list[Order]`.
+- Output: two lines of text: the number of orders and the sales total (pounds, two decimal places).
+- Errors: if any order is invalid, the `ValueError` from `pricing` propagates unchanged.
+- Depends on `total_pence` (pence) in what `pricing` returns.
 
-| 欄位 | 輸入 | 輸出 | 定義 |
+| Field | Input | Output | Definition |
 | --- | --- | --- | --- |
-| `orders` | Yes | — | 當日所有訂單 `list[pricing.Order]` |
-| `Orders` 行 | — | Yes | 訂單數量 |
-| `Sales` 行 | — | Yes | 全部訂單 `total_pence` 之和，以英鎊顯示 |
+| `orders` | Yes | — | All of the day's orders, `list[pricing.Order]` |
+| `Orders` line | — | Yes | Number of orders |
+| `Sales` line | — | Yes | Sum of `total_pence` over all orders, shown in pounds |
 
 ## Class diagram
 ```mermaid
@@ -23,35 +23,35 @@ classDiagram
         +render_daily_sales(orders) str
     }
     class Pricer {
-        <<interface, 元件 pricing>>
+        <<interface, component pricing>>
         +price(order) PriceBreakdown
     }
     daily_sales ..> Pricer
 ```
 
-## Class 職責
-| 單元 | 職責 | 不負責 |
+## Class responsibilities
+| Unit | Responsible for | Not responsible for |
 | --- | --- | --- |
-| `daily_sales`（模組） | <ul><li>逐張訂單呼叫 `Pricer`</li><li>加總 `total_pence` 並格式化</li></ul> | 任何計價規則 |
+| `daily_sales` (module) | <ul><li>Calls `Pricer` for each order</li><li>Sums `total_pence` and formats it</li></ul> | Any pricing rule |
 
 ## Sequence diagram
 ```mermaid
 sequenceDiagram
     participant Caller
     participant daily_sales
-    participant Pricer as Pricer（pricing）
+    participant Pricer as Pricer (pricing)
     Caller->>daily_sales: render_daily_sales(orders)
-    loop 每張訂單
+    loop each order
         daily_sales->>Pricer: price(order)
-        alt 訂單無效
+        alt invalid order
             Pricer-->>daily_sales: ValueError
             daily_sales-->>Caller: ValueError
-        else 成功
+        else success
             Pricer-->>daily_sales: PriceBreakdown
         end
     end
-    daily_sales-->>Caller: 兩行報表文字
+    daily_sales-->>Caller: two-line report text
 ```
 
-## 未接好／計劃中
-- 暫時冇。
+## Planned / not wired yet
+- Nothing at the moment.

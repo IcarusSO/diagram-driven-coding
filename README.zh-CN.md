@@ -4,7 +4,7 @@
 
 一个给 AI 写代码用的 skill：每个组件文件夹内都有自己的 `ARCHITECTURE.md`（class／sequence diagram、职责、数据契约）先行，配合 TDD 与 interface 分层，把 AI 改代码的影响范围收窄。
 
-> 注意：`SKILL.md` 与 demo 文档是用粤语撰写的，AI 读取没有问题；README 提供三种语言。
+> 注意：`SKILL.md` 与 demo 文档以英文撰写；README 提供三种语言。
 
 ## 解决什么问题
 
