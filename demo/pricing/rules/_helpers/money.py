@@ -1,4 +1,4 @@
-"""Private money helpers of the pricing component. Other folders must not import this."""
+"""Private money helpers of the pricing rules sub-component. Other folders must not import this."""
 
 
 def apply_basis_points(amount_pence: int, basis_points: int) -> int:

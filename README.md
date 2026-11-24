@@ -11,6 +11,7 @@
 呢個 skill 唔係叫 AI「更加小心」，而係令佢冇得亂改：
 
 - **邊界清楚**：每個元件一個 folder，只經 interface 對外，private helper 外面唔准碰。
+- **文件有階層**：root 一份元件地圖，每個元件（包括子元件）各自一份 `ARCHITECTURE.md`，每層只寫自己嗰層。
 - **先改圖、再寫 test、後實作**：圖係 AI 同人都睇得明嘅導航圖，亦係 review 嘅重點。
 - **測對外承諾，唔測內部結構**：防止 AI 用大量結構測試製造虛假嘅 coverage 安全感。
 - **改 interface 要經人批准**：AI 會先估算有冇「同當前工作無關」嘅其他使用者，再主動問你要唔要批准。
@@ -21,7 +22,7 @@
 | 路徑 | 內容 |
 | --- | --- |
 | `SKILL.md` | skill 本體（核心做法、進階可選項、ARCHITECTURE.md 模板） |
-| `demo/` | 一個細小嘅 Python 示範項目，兩個情境示範 skill 點樣運作，詳見 `demo/DEMO.md` |
+| `demo/` | 一個細小嘅 Python 示範項目（root、元件、子元件各有 `ARCHITECTURE.md`），三個情境示範 skill 點樣運作，詳見 `demo/DEMO.md` |
 
 ## 點用
 
