@@ -30,8 +30,10 @@
 ## 點用
 
 - **Claude Code**：將 `SKILL.md` 放入 `.claude/skills/diagram-driven-coding/SKILL.md`。
-- **ChatGPT**：將 `SKILL.md` 嘅內容貼入 Project 或自訂 GPT 嘅 instructions，或者作為檔案上載；如果用 Codex，就併入項目嘅 `AGENTS.md`。
-- **其他 AI 工具**：放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `CLAUDE.md`、`.cursorrules`）。
+- **ChatGPT／Codex**：
+  - ChatGPT：如果帳戶有 Skills 功能，喺 Plugins → Skills → Create → Upload from your computer 上載；冇嘅話，將 `SKILL.md` 貼入 Project 嘅 instructions 或作為檔案上載。
+  - Codex：放入項目嘅 `.agents/skills/diagram-driven-coding/SKILL.md`（想所有項目都用，放喺 `~/.agents/skills/`），輸入 `$diagram-driven-coding` 就可以明確呼叫。唔使另外寫 `AGENTS.md`。
+- **其他 AI 工具**：放入該工具嘅 skills 目錄，或者將內容併入項目嘅指引檔（例如 `.cursorrules`）。
 
 適用於中型以上、AI 會長期參與維護嘅項目。細 script 或一次性項目唔使用。
 

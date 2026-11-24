@@ -69,7 +69,7 @@ git diff --stat demo-scenario-1-done demo-scenario-2-done
 
 呢個情境要你用自己嘅 AI 工具跑一次。
 
-1. 退回起點，用 AI 工具打開 `demo/` 目錄（`CLAUDE.md` 會指示 AI 跟 `../SKILL.md`）：
+1. 退回起點，用 AI 工具打開 `demo/` 目錄（Claude Code 讀 `CLAUDE.md`、Codex 讀 `AGENTS.md`，兩份內容一致，都會指示 AI 跟 `../SKILL.md`）：
    ```bash
    git checkout demo-scenario-2-done
    ```
