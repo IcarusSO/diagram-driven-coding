@@ -117,3 +117,7 @@ pyright    # 讀 pyrightconfig.json（standard）
 ### 進階（可選，未驗證）
 
 自動強制檢查、commit hash、test plan／notebook、分級批准，詳見 `SKILL.md` 嘅「進階」部分。
+
+## Licence
+
+MIT，見 [LICENSE](LICENSE)。
