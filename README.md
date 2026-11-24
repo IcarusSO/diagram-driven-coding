@@ -43,3 +43,16 @@ python3 -m unittest discover -v
 ```
 
 只需要 Python 3.9 或以上，冇外部依賴。
+
+## 跑型別檢查（可選）
+
+Interface 簽名一致性靠型別檢查器強制（見 skill 嘅「簽名一致」原則）。Demo 已附設定檔：
+
+```bash
+pip install mypy pyright
+cd demo
+mypy       # 讀 mypy.ini（strict）
+pyright    # 讀 pyrightconfig.json（standard）
+```
+
+兩個都應該係 0 error。
